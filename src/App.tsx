@@ -16,10 +16,19 @@ import DashboardPage from "./pages/DashboardPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
 import NotFound from "./pages/NotFound";
 
-// Inicializa o cliente Supabase
+// Initialize Supabase client with required URL and key
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Handle missing configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Supabase URL or Anon Key is missing. Make sure they are properly set in Lovable settings for this project.");
+}
+
+// Initialize the Supabase client
 const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+  supabaseUrl || '',
+  supabaseAnonKey || ''
 );
 
 function App() {
