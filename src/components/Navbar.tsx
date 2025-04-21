@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Sparkles, LogIn } from "lucide-react";
+import { MessageSquare, Sparkles, LogIn, Phone } from "lucide-react";
 
 const Navbar: React.FC = () => {
   return (
@@ -22,6 +22,10 @@ const Navbar: React.FC = () => {
           </Link>
           <Link to="/precos" className="text-sm font-medium hover:text-whatsapp transition-colors">
             Preços
+          </Link>
+          <Link to="/whatsapp" className="text-sm font-medium hover:text-whatsapp transition-colors flex items-center">
+            <Phone className="h-4 w-4 mr-1" />
+            WhatsApp
           </Link>
           <Link to="/suporte" className="text-sm font-medium hover:text-whatsapp transition-colors">
             Suporte

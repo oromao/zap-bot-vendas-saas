@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ConfigPage from "./pages/ConfigPage";
 import DashboardPage from "./pages/DashboardPage";
+import WhatsAppPage from "./pages/WhatsAppPage";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/cadastro" element={<SignupPage />} />
             <Route path="/configurar" element={<ConfigPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/whatsapp" element={<WhatsAppPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
