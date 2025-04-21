@@ -16,23 +16,45 @@ import DashboardPage from "./pages/DashboardPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
 import NotFound from "./pages/NotFound";
 
-// Initialize Supabase client with required URL and key
+// Obtenha as variáveis de ambiente do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Handle missing configuration
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Supabase URL or Anon Key is missing. Make sure they are properly set in Lovable settings for this project.");
+// Validação das variáveis necessárias
+if (!supabaseUrl || supabaseUrl === "" || !supabaseAnonKey || supabaseAnonKey === "") {
+  console.error("Erro: VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórios. Por favor, configure-os nas configurações do projeto Lovable.");
 }
 
-// Initialize the Supabase client
+// Inicialize o cliente Supabase com verificação explícita de strings vazias
 const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseUrl || "https://placeholder-url.supabase.co",
+  supabaseAnonKey || "placeholder-key"
 );
 
 function App() {
   const [queryClient] = useState(() => new QueryClient());
+  
+  // Se as credenciais do Supabase estiverem faltando, exiba uma mensagem de erro em vez do aplicativo
+  if (!supabaseUrl || supabaseUrl === "" || !supabaseAnonKey || supabaseAnonKey === "") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+        <div className="max-w-md">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h1>
+          <p className="mb-4">
+            As credenciais do Supabase não estão configuradas corretamente. Por favor, verifique se você:
+          </p>
+          <ol className="list-decimal text-left ml-6 mb-6">
+            <li className="mb-2">Ativou a integração com Supabase no projeto Lovable</li>
+            <li className="mb-2">Definiu as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY nas configurações do projeto</li>
+            <li>Reiniciou o aplicativo após a configuração</li>
+          </ol>
+          <p className="text-sm text-gray-600">
+            Se o problema persistir, entre em contato com o suporte.
+          </p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <SessionContextProvider supabaseClient={supabase}>
