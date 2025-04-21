@@ -9,7 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      whatsapp_connections: {
+        Row: {
+          connected: boolean | null
+          connected_at: string | null
+          created_at: string | null
+          disconnected_at: string | null
+          id: string
+          last_qr_generated_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          connected?: boolean | null
+          connected_at?: string | null
+          created_at?: string | null
+          disconnected_at?: string | null
+          id?: string
+          last_qr_generated_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          connected?: boolean | null
+          connected_at?: string | null
+          created_at?: string | null
+          disconnected_at?: string | null
+          id?: string
+          last_qr_generated_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
