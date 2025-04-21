@@ -6,11 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppStatus } from "@/hooks/useWhatsAppStatus";
 import { Check, RefreshCw, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const WhatsAppConnect: React.FC = () => {
   const { toast } = useToast();
   const { isConnected, isLoading, qrCode, connect, disconnect, reconnect, error } = useWhatsAppStatus();
   const [countdown, setCountdown] = useState<number | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (countdown !== null && countdown > 0) {
@@ -87,6 +89,7 @@ const WhatsAppConnect: React.FC = () => {
                           src={`data:image/png;base64,${qrCode}`} 
                           alt="QR Code para conectar WhatsApp" 
                           className="w-64 h-64"
+                          style={{ maxWidth: '100%', height: 'auto' }}
                         />
                       </div>
                     ) : (
@@ -127,7 +130,7 @@ const WhatsAppConnect: React.FC = () => {
               
               <div className="flex-1 bg-gray-50 p-4 rounded-lg border">
                 <h4 className="font-medium mb-2">Instruções:</h4>
-                <ScrollArea className="h-64">
+                <ScrollArea className={isMobile ? "h-48" : "h-64"}>
                   <ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600">
                     <li>Abra o WhatsApp Business no seu celular</li>
                     <li>Toque nos três pontos (⋮) no canto superior direito</li>
@@ -141,6 +144,12 @@ const WhatsAppConnect: React.FC = () => {
                     <p className="text-xs text-yellow-700">
                       <strong>Importante:</strong> Mantenha seu celular conectado à internet para que o robô de vendas funcione corretamente. A sessão será salva para que você não precise escanear o QR Code novamente.
                     </p>
+                    
+                    {isMobile && (
+                      <p className="text-xs text-yellow-700 mt-2">
+                        <strong>Dica para usuários mobile:</strong> Para escanear este QR code do mesmo dispositivo, você pode fazer uma captura de tela e depois abrir a imagem no seu WhatsApp Business.
+                      </p>
+                    )}
                   </div>
                 </ScrollArea>
               </div>

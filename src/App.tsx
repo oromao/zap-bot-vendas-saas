@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from "@/integrations/supabase/client";
+import AuthGuard from "./components/AuthGuard";
 
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
@@ -17,7 +18,14 @@ import WhatsAppPage from "./pages/WhatsAppPage";
 import NotFound from "./pages/NotFound";
 
 function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 2,
+        refetchOnWindowFocus: false,
+      },
+    },
+  }));
   
   return (
     <SessionContextProvider supabaseClient={supabase}>
@@ -27,12 +35,20 @@ function App() {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/cadastro" element={<SignupPage />} />
-              <Route path="/configurar" element={<ConfigPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/whatsapp" element={<WhatsAppPage />} />
+              {/* Public routes */}
+              <Route element={<AuthGuard />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/cadastro" element={<SignupPage />} />
+              </Route>
+              
+              {/* Protected routes */}
+              <Route element={<AuthGuard requireAuth />}>
+                <Route path="/configurar" element={<ConfigPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/whatsapp" element={<WhatsAppPage />} />
+              </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
