@@ -1,10 +1,21 @@
 
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+
+type Message = {
+  id: string;
+  text: string;
+  timestamp: number;
+  fromMe: boolean;
+  hasMedia: boolean;
+  mediaUrl?: string;
+};
 
 export const useWhatsAppMessages = () => {
+  const supabaseClient = useSupabaseClient();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -19,31 +30,23 @@ export const useWhatsAppMessages = () => {
       setError(null);
       setCurrentChatId(chatId);
       
-      // Aqui usaríamos uma Edge Function do Supabase
-      // const { data, error } = await supabaseClient.functions.invoke('get-messages', { chatId });
+      const { data, error: apiError } = await supabaseClient.functions.invoke('get-whatsapp-messages', {
+        body: { chatId }
+      });
       
-      // Mock de resposta
-      setTimeout(() => {
-        // Dados de exemplo
-        const mockMessages = Array(10).fill(null).map((_, index) => {
-          const isEven = index % 2 === 0;
-          const timestamp = Date.now() - 1000 * 60 * (index + 1);
-          
-          return {
-            id: `msg_${chatId}_${index}`,
-            text: isEven 
-              ? "Lorem ipsum dolor sit amet, consectetur adipiscing elit." 
-              : "Suspendisse potenti. Nullam eu felis at magna feugiat tincidunt.",
-            timestamp,
-            fromMe: !isEven,
-            hasMedia: index === 2,
-            mediaUrl: index === 2 ? "https://example.com/image.jpg" : undefined
-          };
+      if (apiError) {
+        console.error("Erro ao buscar mensagens:", apiError);
+        setError("Não foi possível carregar as mensagens.");
+        toast({
+          title: "Erro ao carregar mensagens",
+          description: "Ocorreu um erro ao buscar as mensagens desta conversa.",
+          variant: "destructive"
         });
-        
-        setMessages(mockMessages);
-        setIsLoading(false);
-      }, 1000);
+      } else {
+        setMessages(data || []);
+      }
+      
+      setIsLoading(false);
     } catch (err) {
       console.error("Erro ao buscar mensagens:", err);
       setError("Não foi possível carregar as mensagens.");
@@ -54,7 +57,7 @@ export const useWhatsAppMessages = () => {
         variant: "destructive"
       });
     }
-  }, [currentChatId, messages.length, toast]);
+  }, [currentChatId, messages.length, supabaseClient.functions, toast]);
 
   return { messages, isLoading, error, fetchMessages };
 };

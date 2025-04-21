@@ -83,12 +83,11 @@ const WhatsAppConnect: React.FC = () => {
                       </div>
                     ) : qrCode ? (
                       <div className="p-4 flex items-center justify-center">
-                        {/* Aqui usaríamos uma biblioteca para renderizar o QR Code */}
-                        <div className="bg-gray-200 w-64 h-64 flex items-center justify-center">
-                          <p className="text-sm text-gray-500 text-center px-4">
-                            [QR Code será exibido aqui depois da integração com Supabase]
-                          </p>
-                        </div>
+                        <img 
+                          src={`data:image/png;base64,${qrCode}`} 
+                          alt="QR Code para conectar WhatsApp" 
+                          className="w-64 h-64"
+                        />
                       </div>
                     ) : (
                       <div className="h-64 flex items-center justify-center p-4 text-center">

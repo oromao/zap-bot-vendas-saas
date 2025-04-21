@@ -2,11 +2,24 @@
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppStatus } from "./useWhatsAppStatus";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+
+type Conversation = {
+  id: string;
+  name: string;
+  number: string;
+  lastMessage: {
+    text: string;
+    timestamp: number;
+    fromMe: boolean;
+  }
+};
 
 export const useWhatsAppConversations = () => {
+  const supabaseClient = useSupabaseClient();
   const { isConnected } = useWhatsAppStatus();
   const { toast } = useToast();
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,68 +32,21 @@ export const useWhatsAppConversations = () => {
       setIsLoading(true);
       setError(null);
       
-      // Aqui usaríamos uma Edge Function do Supabase
-      // const { data, error } = await supabaseClient.functions.invoke('get-conversations');
+      const { data, error: apiError } = await supabaseClient.functions.invoke('get-whatsapp-chats');
       
-      // Mock de resposta
-      setTimeout(() => {
-        // Dados de exemplo
-        const mockConversations = [
-          {
-            id: "1",
-            name: "Maria Silva",
-            number: "+5511998765432",
-            lastMessage: {
-              text: "Olá, gostaria de saber mais sobre o produto X",
-              timestamp: Date.now() - 1000 * 60 * 5, // 5 minutos atrás
-              fromMe: false
-            }
-          },
-          {
-            id: "2",
-            name: "João Souza",
-            number: "+5511987654321",
-            lastMessage: {
-              text: "Vou verificar o estoque e te respondo logo",
-              timestamp: Date.now() - 1000 * 60 * 30, // 30 minutos atrás
-              fromMe: true
-            }
-          },
-          {
-            id: "3",
-            name: "Ana Oliveira",
-            number: "+5511976543210",
-            lastMessage: {
-              text: "Qual o prazo de entrega para o CEP 01234-567?",
-              timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2 horas atrás
-              fromMe: false
-            }
-          },
-          {
-            id: "4",
-            name: "Carlos Santos",
-            number: "+5511965432109",
-            lastMessage: {
-              text: "Obrigado pelo atendimento!",
-              timestamp: Date.now() - 1000 * 60 * 60 * 5, // 5 horas atrás
-              fromMe: false
-            }
-          },
-          {
-            id: "5",
-            name: "Laura Mendes",
-            number: "+5511954321098",
-            lastMessage: {
-              text: "Enviamos seu pedido hoje, o código de rastreio é BR12345678",
-              timestamp: Date.now() - 1000 * 60 * 60 * 24, // 1 dia atrás
-              fromMe: true
-            }
-          }
-        ];
-        
-        setConversations(mockConversations);
-        setIsLoading(false);
-      }, 1500);
+      if (apiError) {
+        console.error("Erro ao buscar conversas:", apiError);
+        setError("Não foi possível carregar as conversas.");
+        toast({
+          title: "Erro ao carregar conversas",
+          description: "Ocorreu um erro ao buscar suas conversas do WhatsApp.",
+          variant: "destructive"
+        });
+      } else {
+        setConversations(data || []);
+      }
+      
+      setIsLoading(false);
     } catch (err) {
       console.error("Erro ao buscar conversas:", err);
       setError("Não foi possível carregar as conversas.");
@@ -91,7 +57,7 @@ export const useWhatsAppConversations = () => {
         variant: "destructive"
       });
     }
-  }, [isConnected, toast]);
+  }, [isConnected, supabaseClient.functions, toast]);
 
   useEffect(() => {
     if (isConnected) {
