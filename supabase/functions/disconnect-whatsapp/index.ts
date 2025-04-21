@@ -26,7 +26,7 @@ serve(async (req) => {
             return fetch(url, {
               ...init,
               // Set a reasonable timeout
-              signal: AbortSignal.timeout(5000),
+              signal: AbortSignal.timeout(10000), // Increased timeout to 10s
             });
           },
         }
@@ -43,36 +43,41 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Attempting to disconnect WhatsApp for user ${user.id}`);
+    
     // In a real implementation, this would call the WhatsApp Business API to disconnect
     // For this demo, we'll just update the status in the database
     
     const { error } = await supabaseClient
       .from('whatsapp_connections')
-      .upsert({ 
-        user_id: user.id, 
+      .update({ 
         connected: false,
         disconnected_at: new Date().toISOString()
-      });
+      })
+      .eq('user_id', user.id);
     
     if (error) {
       console.error("Error updating connection status:", error);
       return new Response(
-        JSON.stringify({ error: "Erro ao desconectar WhatsApp" }),
+        JSON.stringify({ error: "Erro ao desconectar WhatsApp", details: error.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`WhatsApp disconnected for user ${user.id}`);
+    console.log(`WhatsApp disconnected successfully for user ${user.id}`);
     
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, message: "WhatsApp desconectado com sucesso" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error("Error disconnecting WhatsApp:", error);
     
     return new Response(
-      JSON.stringify({ error: "Erro ao desconectar WhatsApp" }),
+      JSON.stringify({ 
+        error: "Erro ao desconectar WhatsApp", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
