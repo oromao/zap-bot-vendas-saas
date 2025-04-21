@@ -78,3 +78,26 @@
 html {
   height: -webkit-fill-available;
 }
+
+/* Twilio color */
+.bg-twilio {
+  background-color: #F22F46;
+}
+
+.bg-twilio\/90 {
+  background-color: rgba(242, 47, 70, 0.9);
+}
+
+.text-twilio {
+  color: #F22F46;
+}
+
+/* Badge styles */
+.badge-connected {
+  background-color: #22c55e;
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}

@@ -15,6 +15,7 @@ import SignupPage from "./pages/SignupPage";
 import ConfigPage from "./pages/ConfigPage";
 import DashboardPage from "./pages/DashboardPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -47,6 +48,15 @@ function App() {
                 <Route path="/configurar" element={<ConfigPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/whatsapp" element={<WhatsAppPage />} />
+                <Route path="/campanhas" element={<DashboardPage />} />
+                <Route path="/relatorios" element={<DashboardPage />} />
+                <Route path="/integracao" element={<ConfigPage />} />
+                <Route path="/suporte" element={<DashboardPage />} />
+              </Route>
+              
+              {/* Admin-only route */}
+              <Route element={<AuthGuard requireAuth isAdminOnly />}>
+                <Route path="/admin" element={<AdminPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
