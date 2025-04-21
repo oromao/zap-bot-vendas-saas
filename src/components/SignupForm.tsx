@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const SignupForm: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -20,7 +23,7 @@ const SignupForm: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação
@@ -42,20 +45,44 @@ const SignupForm: React.FC = () => {
       return;
     }
 
-    // Simular registro
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name
+          }
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro ao criar conta",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
       toast({
         title: "Conta criada com sucesso!",
-        description: "Redirecionando para a configuração do seu robô.",
+        description: "Verifique seu email para confirmar sua conta.",
       });
-
-      // Simulando redirecionamento
-      setTimeout(() => {
-        window.location.href = "/configurar";
-      }, 1000);
-    }, 1500);
+      
+      navigate("/login");
+    } catch (error) {
+      console.error("Erro ao criar conta:", error);
+      toast({
+        title: "Erro ao criar conta",
+        description: "Ocorreu um erro inesperado. Por favor, tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,6 +96,7 @@ const SignupForm: React.FC = () => {
             placeholder="Digite seu nome"
             value={formData.name}
             onChange={handleChange}
+            autoComplete="name"
           />
         </div>
 
@@ -81,6 +109,7 @@ const SignupForm: React.FC = () => {
             placeholder="Digite seu email"
             value={formData.email}
             onChange={handleChange}
+            autoComplete="email"
           />
         </div>
 
@@ -93,6 +122,7 @@ const SignupForm: React.FC = () => {
             placeholder="Crie uma senha segura"
             value={formData.password}
             onChange={handleChange}
+            autoComplete="new-password"
           />
         </div>
 
@@ -105,6 +135,7 @@ const SignupForm: React.FC = () => {
             placeholder="Digite sua senha novamente"
             value={formData.confirmPassword}
             onChange={handleChange}
+            autoComplete="new-password"
           />
         </div>
 

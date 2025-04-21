@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoginForm: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -18,7 +21,7 @@ const LoginForm: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação
@@ -31,20 +34,39 @@ const LoginForm: React.FC = () => {
       return;
     }
 
-    // Simular login
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro ao fazer login",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
       toast({
         title: "Login realizado com sucesso!",
         description: "Redirecionando para o dashboard.",
       });
-
-      // Simulando redirecionamento
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1000);
-    }, 1500);
+      
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      toast({
+        title: "Erro ao fazer login",
+        description: "Ocorreu um erro inesperado. Por favor, tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,6 +81,7 @@ const LoginForm: React.FC = () => {
             placeholder="Digite seu email"
             value={formData.email}
             onChange={handleChange}
+            autoComplete="email"
           />
         </div>
 
@@ -76,6 +99,7 @@ const LoginForm: React.FC = () => {
             placeholder="Digite sua senha"
             value={formData.password}
             onChange={handleChange}
+            autoComplete="current-password"
           />
         </div>
 
