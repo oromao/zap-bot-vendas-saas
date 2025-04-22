@@ -1,454 +1,135 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Download, Search, Filter, MoreHorizontal } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
   email: string;
-  created_at: string;
   last_sign_in_at: string;
-  status: 'active' | 'suspended' | 'pending';
-  plan: 'free' | 'basic' | 'premium';
-  message_limit: number;
-  messages_sent: number;
-  whatsapp_status: 'connected' | 'disconnected';
+  whatsapp_connected: boolean;
 }
 
 const AdminPage: React.FC = () => {
-  const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const supabaseClient = useSupabaseClient();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  // Função para carregar os usuários
+  const loadUsers = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Simulate fetching data since we don't have the actual admin_users_view table
-      // In a real implementation, this would fetch from an actual view or join tables
-      const { data: usersData, error: usersError } = await supabase
-        .from('auth.users')
+      // Aqui precisamos fazer duas consultas porque não podemos acessar diretamente auth.users
+      // Primeiro, vamos obter as conexões WhatsApp
+      const { data: connectionsData, error: connectionsError } = await supabaseClient
+        .from('whatsapp_connections')
         .select('*');
-        
-      if (usersError) throw usersError;
-      
-      // Get additional data about users from profile or custom tables
-      // This is a mock implementation - in a real app you'd fetch from actual tables
-      const mockUserData: User[] = (usersData || []).map(user => ({
-        id: user.id,
-        email: user.email || '',
-        created_at: user.created_at,
-        last_sign_in_at: user.last_sign_in_at || '',
-        status: 'active',
-        plan: 'free',
-        message_limit: 100,
-        messages_sent: 0,
-        whatsapp_status: 'disconnected'
-      }));
-      
-      setUsers(mockUserData);
+
+      if (connectionsError) {
+        throw connectionsError;
+      }
+
+      // Simular dados de usuários já que não podemos acessar auth.users diretamente
+      // Em um cenário real, você precisaria ter uma tabela de perfis vinculada aos usuários
+      const mockUsers = [
+        {
+          id: "123e4567-e89b-12d3-a456-426614174000",
+          email: "usuario1@example.com",
+          last_sign_in_at: new Date().toISOString(),
+          whatsapp_connected: false
+        },
+        {
+          id: "223e4567-e89b-12d3-a456-426614174001",
+          email: "usuario2@example.com", 
+          last_sign_in_at: new Date(Date.now() - 86400000).toISOString(),
+          whatsapp_connected: false
+        }
+      ];
+
+      // Vincular dados de conexão WhatsApp com os usuários simulados
+      const usersWithWhatsApp = mockUsers.map(user => {
+        const connection = connectionsData?.find(conn => conn.user_id === user.id);
+        return {
+          ...user,
+          whatsapp_connected: connection?.connected || false
+        };
+      });
+
+      setUsers(usersWithWhatsApp);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Erro ao carregar usuários:", error);
       toast({
-        title: "Erro ao carregar usuários",
-        description: "Não foi possível carregar a lista de usuários.",
-        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível carregar os usuários",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleUserStatus = async (userId: string, newStatus: 'active' | 'suspended') => {
-    try {
-      // In a real implementation, update the actual status in your database
-      // This is a mock implementation that only updates local state
-      
-      // Update local state
-      setUsers(users.map(user => 
-        user.id === userId ? {...user, status: newStatus} : user
-      ));
-      
-      toast({
-        title: "Status atualizado",
-        description: `Usuário ${newStatus === 'active' ? 'ativado' : 'suspenso'} com sucesso.`,
-      });
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      toast({
-        title: "Erro ao atualizar status",
-        description: "Ocorreu um erro ao atualizar o status do usuário.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteUser = async (userId: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir este usuário? Esta ação é irreversível.")) return;
-    
-    try {
-      // In a real implementation, you would delete the user via the Supabase Auth API
-      // or through an edge function that handles user deletion properly
-      
-      // Update local state by removing the deleted user
-      setUsers(users.filter(user => user.id !== userId));
-      
-      toast({
-        title: "Usuário excluído",
-        description: "Usuário excluído com sucesso.",
-      });
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast({
-        title: "Erro ao excluir usuário",
-        description: "Ocorreu um erro ao excluir o usuário.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const exportUsers = () => {
-    const filteredUsersForExport = filteredUsers;
-    
-    // Convert to CSV
-    const headers = ['ID', 'Email', 'Criado em', 'Último login', 'Status', 'Plano', 'Limite de mensagens', 'Mensagens enviadas', 'Status WhatsApp'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredUsersForExport.map(user => [
-        user.id,
-        user.email,
-        new Date(user.created_at).toLocaleDateString(),
-        user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Nunca',
-        user.status,
-        user.plan,
-        user.message_limit,
-        user.messages_sent,
-        user.whatsapp_status
-      ].join(','))
-    ].join('\n');
-    
-    // Create CSV download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `usuarios-zapbot-${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const filterUsers = (userList: User[]) => {
-    return userList.filter(user => {
-      const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus ? user.status === filterStatus : true;
-      return matchesSearch && matchesStatus;
-    });
-  };
-
-  const filteredUsers = filterUsers(users);
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div>
       <Navbar />
-      <main className="flex-1 py-16 px-4">
+      <main className="py-12 px-4">
         <div className="container">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Painel de Administração</h1>
-              <p className="text-gray-600">Gerencie usuários, planos e configurações do sistema</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-blue-500">Admin</Badge>
-            </div>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">Painel Administrativo</h1>
+            <Button onClick={loadUsers} disabled={loading}>
+              {loading ? "Carregando..." : "Atualizar"}
+            </Button>
           </div>
-          
-          <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="users">Usuários</TabsTrigger>
-              <TabsTrigger value="plans">Planos</TabsTrigger>
-              <TabsTrigger value="settings">Configurações</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="users" className="space-y-6">
-              <div className="bg-white rounded-lg border shadow-sm p-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                  <h2 className="text-xl font-semibold">Lista de usuários</h2>
-                  
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                      <Input
-                        type="search"
-                        placeholder="Buscar por email..."
-                        className="pl-9"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                          <Filter className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuLabel>Filtrar por status</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setFilterStatus(null)}>
-                          Todos
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setFilterStatus('active')}>
-                          Ativos
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setFilterStatus('suspended')}>
-                          Suspensos
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={exportUsers}
-                      title="Exportar para CSV"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Usuários</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p>Carregando usuários...</p>
+              ) : users.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Email</th>
+                        <th className="text-left p-2">Último Login</th>
+                        <th className="text-left p-2">WhatsApp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          <td className="p-2">
+                            {new Date(user.last_sign_in_at).toLocaleString('pt-BR')}
+                          </td>
+                          <td className="p-2">
+                            {user.whatsapp_connected ? (
+                              <span className="text-green-600 font-medium">Conectado</span>
+                            ) : (
+                              <span className="text-red-600 font-medium">Desconectado</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                
-                {loading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <div className="w-10 h-10 border-4 border-t-blue-500 rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Email</TableHead>
-                          <TableHead className="hidden md:table-cell">Criado em</TableHead>
-                          <TableHead className="hidden md:table-cell">Plano</TableHead>
-                          <TableHead className="hidden lg:table-cell">Mensagens</TableHead>
-                          <TableHead>Status WhatsApp</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers.length > 0 ? (
-                          filteredUsers.map((user) => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">
-                                {user.email}
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell">
-                                {new Date(user.created_at).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell">
-                                <Badge className={
-                                  user.plan === 'premium' 
-                                    ? "bg-purple-500" 
-                                    : user.plan === 'basic' 
-                                    ? "bg-blue-500" 
-                                    : "bg-gray-500"
-                                }>
-                                  {user.plan === 'premium' 
-                                    ? 'Premium' 
-                                    : user.plan === 'basic' 
-                                    ? 'Básico' 
-                                    : 'Gratuito'
-                                  }
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">
-                                {user.messages_sent} / {user.message_limit}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={
-                                  user.whatsapp_status === 'connected'
-                                    ? "bg-green-500"
-                                    : "bg-gray-500"
-                                }>
-                                  {user.whatsapp_status === 'connected' 
-                                    ? 'Conectado' 
-                                    : 'Desconectado'
-                                  }
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Switch
-                                  checked={user.status === 'active'}
-                                  onCheckedChange={(checked) => 
-                                    toggleUserStatus(user.id, checked ? 'active' : 'suspended')
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                      <span className="sr-only">Open menu</span>
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                                    <DropdownMenuItem>Editar plano</DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="text-red-600"
-                                      onClick={() => deleteUser(user.id)}
-                                    >
-                                      Excluir conta
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-10 text-gray-500">
-                              Nenhum usuário encontrado.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                    
-                    <div className="mt-4 text-sm text-gray-500">
-                      Mostrando {filteredUsers.length} de {users.length} usuários
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="plans" className="space-y-6">
-              <div className="bg-white rounded-lg border shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-6">Gerenciamento de Planos</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="border rounded-lg p-6">
-                    <h3 className="text-lg font-medium mb-2">Plano Gratuito</h3>
-                    <div className="mb-4">
-                      <p className="text-gray-500 text-sm">Limite de mensagens</p>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          defaultValue="100"
-                          className="w-20 text-right" 
-                        />
-                        <span className="text-sm text-gray-500">mensagens/mês</span>
-                      </div>
-                    </div>
-                    <Button size="sm" className="w-full">Atualizar</Button>
-                  </div>
-                  
-                  <div className="border rounded-lg p-6">
-                    <h3 className="text-lg font-medium mb-2">Plano Básico</h3>
-                    <div className="mb-4">
-                      <p className="text-gray-500 text-sm">Limite de mensagens</p>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          defaultValue="1000"
-                          className="w-20 text-right" 
-                        />
-                        <span className="text-sm text-gray-500">mensagens/mês</span>
-                      </div>
-                    </div>
-                    <Button size="sm" className="w-full">Atualizar</Button>
-                  </div>
-                  
-                  <div className="border rounded-lg p-6">
-                    <h3 className="text-lg font-medium mb-2">Plano Premium</h3>
-                    <div className="mb-4">
-                      <p className="text-gray-500 text-sm">Limite de mensagens</p>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          defaultValue="10000"
-                          className="w-20 text-right" 
-                        />
-                        <span className="text-sm text-gray-500">mensagens/mês</span>
-                      </div>
-                    </div>
-                    <Button size="sm" className="w-full">Atualizar</Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="settings" className="space-y-6">
-              <div className="bg-white rounded-lg border shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-6">Configurações do Sistema</h2>
-                
-                <div className="max-w-2xl">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Configurações gerais</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="system-name">Nome do sistema</Label>
-                          <Input id="system-name" defaultValue="ZapBot" />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="support-email">Email de suporte</Label>
-                          <Input id="support-email" defaultValue="suporte@zapbot.com" type="email" />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">Registro de novos usuários</h4>
-                            <p className="text-sm text-gray-500">Permitir que novos usuários se registrem</p>
-                          </div>
-                          <Switch defaultChecked />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">Auto-aprovação de contas</h4>
-                            <p className="text-sm text-gray-500">Aprovar automaticamente novos usuários</p>
-                          </div>
-                          <Switch defaultChecked />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button>Salvar configurações</Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+              ) : (
+                <p>Nenhum usuário encontrado.</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </main>
       <Footer />

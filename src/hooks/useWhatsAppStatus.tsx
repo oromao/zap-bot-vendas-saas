@@ -15,8 +15,8 @@ export const useWhatsAppStatus = () => {
   // Use refs to track active requests and intervals to prevent race conditions
   const statusRequestInProgress = useRef(false);
   const lastCheckTime = useRef(0);
-  const statusCheckIntervalRef = useRef<number | null>(null);
-  const qrPollingIntervalRef = useRef<number | null>(null);
+  const statusCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const qrPollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxRetries = 3;
   
   // Helper to cancel existing intervals
@@ -50,10 +50,7 @@ export const useWhatsAppStatus = () => {
       
       const { data, error: apiError } = await supabaseClient.functions.invoke('check-whatsapp-status', {
         method: 'POST',
-        body: { timestamp: now }, // Cache-busting parameter
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
+        body: { timestamp: now } // Cache-busting parameter
       });
       
       // Atualizar timestamp da última verificação
@@ -126,10 +123,7 @@ export const useWhatsAppStatus = () => {
       
       const { data, error: apiError } = await supabaseClient.functions.invoke('generate-whatsapp-qr', {
         method: 'POST',
-        body: { timestamp: Date.now() },
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
+        body: { timestamp: Date.now() }
       });
       
       if (apiError) {
@@ -151,10 +145,7 @@ export const useWhatsAppStatus = () => {
         try {
           const { data: statusData, error: statusError } = await supabaseClient.functions.invoke('check-whatsapp-status', {
             method: 'POST',
-            body: { timestamp: Date.now() },
-            headers: {
-              'Cache-Control': 'no-cache',
-            }
+            body: { timestamp: Date.now() }
           });
           
           if (statusError) {
@@ -209,10 +200,7 @@ export const useWhatsAppStatus = () => {
       
       const { error: apiError } = await supabaseClient.functions.invoke('disconnect-whatsapp', {
         method: 'POST',
-        body: { timestamp: Date.now() },
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
+        body: { timestamp: Date.now() }
       });
       
       if (apiError) {
