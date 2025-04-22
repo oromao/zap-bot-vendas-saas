@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,31 +26,48 @@ const WhatsAppAPIConnect: React.FC = () => {
   const [twilioAuthToken, setTwilioAuthToken] = useState("");
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState("");
 
+  // Get current session when component mounts
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (data?.session?.access_token) {
+        setSessionToken(data.session.access_token);
+      }
+    };
+    fetchSession();
+  }, [supabaseClient.auth]);
+
   const handleMetaConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Get current session to ensure we have a valid auth token
-      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error("Authentication error:", sessionError?.message || "No session");
-        throw new Error(sessionError?.message || "Please login again to continue");
+      if (!sessionToken) {
+        throw new Error("Not authenticated. Please log in and try again.");
       }
 
-      const { data, error } = await supabaseClient.functions.invoke('connect-whatsapp-api', {
-        body: {
+      // Call the edge function directly with the auth token
+      const response = await fetch('https://alycmsfeertgjmpqkwup.supabase.co/functions/v1/connect-whatsapp-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWNtc2ZlZXJ0Z2ptcHFrd3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMzQ3MTYsImV4cCI6MjA2MDgxMDcxNn0.0RpcXTHWwyo7ar-pY_F71em4a417wpxA4U8UXhrmlj0'
+        },
+        body: JSON.stringify({
           type: "meta",
           businessId: metaBusinessId,
           phoneNumberId: metaPhoneNumberId,
           accessToken: metaAccessToken
-        }
+        })
       });
       
-      if (error) {
-        console.error("Erro ao conectar WhatsApp API:", error);
-        throw new Error(error.message || "Failed to connect WhatsApp API");
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to connect WhatsApp API");
       }
       
       toast({
@@ -59,7 +76,7 @@ const WhatsAppAPIConnect: React.FC = () => {
         variant: "default",
       });
 
-      // Reload the page or update state as needed
+      // Reload the page after a short delay
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -81,26 +98,30 @@ const WhatsAppAPIConnect: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Get current session to ensure we have a valid auth token
-      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error("Authentication error:", sessionError?.message || "No session");
-        throw new Error(sessionError?.message || "Please login again to continue");
+      if (!sessionToken) {
+        throw new Error("Not authenticated. Please log in and try again.");
       }
       
-      const { data, error } = await supabaseClient.functions.invoke('connect-whatsapp-api', {
-        body: {
+      // Call the edge function directly with the auth token
+      const response = await fetch('https://alycmsfeertgjmpqkwup.supabase.co/functions/v1/connect-whatsapp-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWNtc2ZlZXJ0Z2ptcHFrd3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMzQ3MTYsImV4cCI6MjA2MDgxMDcxNn0.0RpcXTHWwyo7ar-pY_F71em4a417wpxA4U8UXhrmlj0'
+        },
+        body: JSON.stringify({
           type: "twilio",
           accountSid: twilioAccountSid,
           authToken: twilioAuthToken,
           phoneNumber: twilioPhoneNumber
-        }
+        })
       });
       
-      if (error) {
-        console.error("Erro ao conectar Twilio:", error);
-        throw new Error(error.message || "Failed to connect Twilio API");
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to connect Twilio API");
       }
       
       toast({
@@ -109,7 +130,7 @@ const WhatsAppAPIConnect: React.FC = () => {
         variant: "default",
       });
 
-      // Reload the page or update state as needed
+      // Reload the page after a short delay
       setTimeout(() => {
         window.location.reload();
       }, 1500);

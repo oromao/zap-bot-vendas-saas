@@ -26,6 +26,8 @@ interface TwilioConnectionRequest {
 type ConnectionRequest = MetaConnectionRequest | TwilioConnectionRequest;
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("[DEBUG] Received request to connect-whatsapp-api");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { 
@@ -37,6 +39,10 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
+    const apikey = req.headers.get('apikey');
+    
+    console.log("[DEBUG] Auth header present:", !!authHeader);
+    console.log("[DEBUG] API key present:", !!apikey);
     
     if (!authHeader) {
       console.error("Request missing authorization token");
@@ -49,16 +55,16 @@ const handler = async (req: Request): Promise<Response> => {
     // Extract JWT token
     const jwt = authHeader.replace('Bearer ', '');
 
-    // Initialize Supabase client with explicit auth configuration
+    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { 
-          Authorization: authHeader,
-        },
-      },
+    console.log("[DEBUG] Supabase URL:", supabaseUrl ? "Present" : "Missing");
+    console.log("[DEBUG] Supabase Anon Key:", supabaseAnonKey ? "Present" : "Missing");
+
+    // Create admin client with service role key for accessing auth data directly
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -66,11 +72,11 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
-    // Get user from JWT token
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
+    // Verify the JWT token
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(jwt);
 
     if (userError || !user) {
-      console.error("Erro de autenticação:", userError?.message || "User not found");
+      console.error("Authentication error:", userError?.message || "User not found");
       return new Response(
         JSON.stringify({ error: "Unauthorized: " + (userError?.message || "User not found") }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -78,12 +84,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const userId = user.id;
-    console.log(`Processing request for authenticated user: ${userId}`);
+    console.log(`[DEBUG] Successfully authenticated user: ${userId}`);
     
     // Parse the request body
     let requestData: ConnectionRequest;
     try {
       requestData = await req.json();
+      console.log("[DEBUG] Request data type:", requestData.type);
     } catch (e) {
       console.error("Error parsing request body:", e);
       return new Response(
@@ -114,10 +121,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Processing ${requestData.type} connection request for user ${userId}`);
+    console.log(`[DEBUG] Processing ${requestData.type} connection request for user ${userId}`);
 
     // Store connection data in database (encrypted at rest)
-    const { error: insertError } = await supabaseClient.from("whatsapp_api_connections").upsert({
+    const { error: insertError } = await adminClient.from("whatsapp_api_connections").upsert({
       user_id: userId,
       connection_type: requestData.type,
       config: requestData,
@@ -135,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Update whatsapp_connections table 
-    const { error: updateError } = await supabaseClient.from("whatsapp_connections").upsert({
+    const { error: updateError } = await adminClient.from("whatsapp_connections").upsert({
       user_id: userId,
       connected: true,
       connected_at: new Date().toISOString(),
@@ -148,7 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email
     try {
-      await supabaseClient.functions.invoke('send-connection-notification', {
+      await adminClient.functions.invoke('send-connection-notification', {
         body: { connectionType: requestData.type === "meta" ? "Meta WhatsApp API" : "Twilio API" }
       });
     } catch (emailError) {
@@ -156,7 +163,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Continue execution even if email fails
     }
     
-    console.log(`Successfully connected ${requestData.type} for user ${userId}`);
+    console.log(`[DEBUG] Successfully connected ${requestData.type} for user ${userId}`);
     
     return new Response(
       JSON.stringify({ 

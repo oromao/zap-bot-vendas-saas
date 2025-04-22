@@ -19,7 +19,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.connect-whatsapp-api]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-connection-notification]
 verify_jwt = true
