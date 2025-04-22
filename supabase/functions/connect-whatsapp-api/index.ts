@@ -14,7 +14,7 @@ interface MetaConnectionRequest {
   businessId: string;
   phoneNumberId: string;
   accessToken: string;
-  userId?: string; // Make userId optional in the request
+  userId?: string;
 }
 
 interface TwilioConnectionRequest {
@@ -22,7 +22,7 @@ interface TwilioConnectionRequest {
   accountSid: string;
   authToken: string;
   phoneNumber: string;
-  userId?: string; // Make userId optional in the request
+  userId?: string;
 }
 
 type ConnectionRequest = MetaConnectionRequest | TwilioConnectionRequest;
@@ -73,38 +73,15 @@ const handler = async (req: Request): Promise<Response> => {
     let userId = null;
     
     // 1. Check JWT context if available
-    const sbContext = (req as any).url?.sb?.[0];
-    const contextUserId = sbContext?.auth_user;
-    if (contextUserId) {
-      console.log("[DEBUG] User ID found in JWT context:", contextUserId);
-      userId = contextUserId;
+    const authContext = (req as any).url?.sb?.[0];
+    if (authContext && authContext.auth_user) {
+      console.log("[DEBUG] User ID found in JWT context:", authContext.auth_user);
+      userId = authContext.auth_user;
     }
-    
     // 2. If not in context, check if it's in the request body
     else if (requestData.userId) {
       console.log("[DEBUG] User ID found in request body:", requestData.userId);
       userId = requestData.userId;
-      
-      // Validate that this user exists
-      const { data: userExists, error: userCheckError } = await adminClient
-        .from("whatsapp_connections")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      
-      if (userCheckError) {
-        console.error("[DEBUG] Error checking user existence:", userCheckError);
-      } else if (!userExists) {
-        console.log("[DEBUG] Creating initial whatsapp_connections record for user");
-        // Create initial record if it doesn't exist
-        await adminClient
-          .from("whatsapp_connections")
-          .upsert({
-            user_id: userId,
-            connected: false,
-            created_at: new Date().toISOString(),
-          });
-      }
     }
 
     // If still no user ID, return authentication error
@@ -166,6 +143,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("[DEBUG] Successfully stored API connection data");
 
       // Update whatsapp_connections table for backward compatibility
+      // Using upsert instead of insert to handle duplicate key errors
       const { error: updateError } = await adminClient
         .from("whatsapp_connections")
         .upsert({
@@ -177,6 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (updateError) {
         console.error("[DEBUG] Error updating whatsapp_connections:", updateError);
+        // We continue even if this fails, since the main table was updated successfully
       } else {
         console.log("[DEBUG] Successfully updated whatsapp_connections table");
       }
