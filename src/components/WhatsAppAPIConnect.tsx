@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,14 @@ const WhatsAppAPIConnect: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Get current session to ensure we have a valid auth token
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("Authentication error:", sessionError?.message || "No session");
+        throw new Error(sessionError?.message || "Please login again to continue");
+      }
+
       const { data, error } = await supabaseClient.functions.invoke('connect-whatsapp-api', {
         body: {
           type: "meta",
@@ -72,6 +81,14 @@ const WhatsAppAPIConnect: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Get current session to ensure we have a valid auth token
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("Authentication error:", sessionError?.message || "No session");
+        throw new Error(sessionError?.message || "Please login again to continue");
+      }
+      
       const { data, error } = await supabaseClient.functions.invoke('connect-whatsapp-api', {
         body: {
           type: "twilio",

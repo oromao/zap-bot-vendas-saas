@@ -46,46 +46,38 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Initialize Supabase client with authorization from request
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { 
-            Authorization: authHeader,
-          },
+    // Extract JWT token
+    const jwt = authHeader.replace('Bearer ', '');
+
+    // Initialize Supabase client with explicit auth configuration
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { 
+          Authorization: authHeader,
         },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
       }
-    );
+    });
 
-    // Get the session to identify the user
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabaseClient.auth.getSession();
+    // Get user from JWT token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
 
-    if (sessionError) {
-      console.error("Authentication error:", sessionError.message);
+    if (userError || !user) {
+      console.error("Erro de autenticação:", userError?.message || "User not found");
       return new Response(
-        JSON.stringify({ error: "Unauthorized: " + sessionError.message }),
+        JSON.stringify({ error: "Unauthorized: " + (userError?.message || "User not found") }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    if (!session) {
-      console.error("No session found");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: No session found" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    const userId = session.user.id;
+    const userId = user.id;
     console.log(`Processing request for authenticated user: ${userId}`);
     
     // Parse the request body
