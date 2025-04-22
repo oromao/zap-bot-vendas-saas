@@ -7,12 +7,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Check, AlertTriangle, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 
 const WhatsAppAPIConnect: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [connectionType, setConnectionType] = useState<"meta" | "twilio">("meta");
+  const supabaseClient = useSupabaseClient();
   
   // Meta API fields
   const [metaBusinessId, setMetaBusinessId] = useState("");
@@ -29,7 +30,7 @@ const WhatsAppAPIConnect: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.functions.invoke('connect-whatsapp-api', {
+      const { data, error } = await supabaseClient.functions.invoke('connect-whatsapp-api', {
         body: {
           type: "meta",
           businessId: metaBusinessId,
@@ -38,17 +39,15 @@ const WhatsAppAPIConnect: React.FC = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao conectar WhatsApp API:", error);
+        throw error;
+      }
       
       toast({
         title: "Conexão realizada com sucesso!",
         description: "Seu WhatsApp Business API foi conectado com sucesso.",
         variant: "default",
-      });
-      
-      // Send confirmation email
-      await supabase.functions.invoke('send-connection-notification', {
-        body: { connectionType: "Meta WhatsApp API" }
       });
       
     } catch (error: any) {
@@ -68,7 +67,7 @@ const WhatsAppAPIConnect: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.functions.invoke('connect-whatsapp-api', {
+      const { data, error } = await supabaseClient.functions.invoke('connect-whatsapp-api', {
         body: {
           type: "twilio",
           accountSid: twilioAccountSid,
@@ -77,17 +76,15 @@ const WhatsAppAPIConnect: React.FC = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao conectar Twilio:", error);
+        throw error;
+      }
       
       toast({
         title: "Conexão realizada com sucesso!",
         description: "Sua integração com Twilio foi conectada com sucesso.",
         variant: "default",
-      });
-      
-      // Send confirmation email
-      await supabase.functions.invoke('send-connection-notification', {
-        body: { connectionType: "Twilio WhatsApp API" }
       });
       
     } catch (error: any) {

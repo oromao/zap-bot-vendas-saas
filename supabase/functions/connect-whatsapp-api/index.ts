@@ -30,12 +30,39 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Requisição sem token de autorização");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Authentication required" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
+          fetch: (url, init) => {
+            // Remove cache-control header as it's causing CORS issues
+            if (init && init.headers) {
+              const headers = new Headers(init.headers);
+              if (headers.has('cache-control')) {
+                headers.delete('cache-control');
+              }
+              return fetch(url, {
+                ...init,
+                headers,
+                signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
+              });
+            }
+            return fetch(url, {
+              ...init,
+              signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
+            });
+          },
         },
       }
     );
@@ -47,6 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
     } = await supabaseClient.auth.getSession();
 
     if (sessionError || !session) {
+      console.error("Erro de autenticação:", sessionError || "Session not found");
       return new Response(
         JSON.stringify({ error: "Unauthorized: Authentication required" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -54,7 +82,18 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const userId = session.user.id;
-    const requestData: ConnectionRequest = await req.json();
+    
+    // Parse the request body
+    let requestData: ConnectionRequest;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      console.error("Error parsing request body:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // Validate request data
     if (requestData.type === "meta") {
@@ -77,6 +116,8 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
+    console.log(`Processing ${requestData.type} connection request for user ${userId}`);
 
     // Store connection data in database (encrypted at rest)
     const { error: insertError } = await supabaseClient.from("whatsapp_api_connections").upsert({
@@ -108,9 +149,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Send confirmation email
-    await supabaseClient.functions.invoke('send-connection-notification', {
-      body: { connectionType: requestData.type === "meta" ? "Meta WhatsApp API" : "Twilio API" }
-    });
+    try {
+      await supabaseClient.functions.invoke('send-connection-notification', {
+        body: { connectionType: requestData.type === "meta" ? "Meta WhatsApp API" : "Twilio API" }
+      });
+    } catch (emailError) {
+      console.error("Error sending notification email:", emailError);
+      // Continue execution even if email fails
+    }
+    
+    console.log(`Successfully connected ${requestData.type} for user ${userId}`);
     
     return new Response(
       JSON.stringify({ 
@@ -122,7 +170,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("Error handling WhatsApp API connection request:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
