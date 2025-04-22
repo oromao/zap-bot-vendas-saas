@@ -9,8 +9,8 @@ const corsHeaders = {
 
 // Cache de status para reduzir consultas ao banco de dados
 const statusCache = new Map();
-const CACHE_TTL = 30000; // 30 segundos de TTL para o cache (aumentado para reduzir consultas frequentes)
-const MAX_CACHE_SIZE = 500; // Limitar tamanho do cache para evitar vazamentos de memória
+const CACHE_TTL = 30000; // 30 segundos de TTL para o cache
+const MAX_CACHE_SIZE = 500; // Limitar tamanho do cache
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -45,7 +45,7 @@ serve(async (req) => {
       );
     }
 
-    // Se não tem cache válido, inicializar cliente Supabase com tratamento de erros melhorado
+    // Se não tem cache válido, inicializar cliente Supabase
     let supabaseClient;
     try {
       supabaseClient = createClient(
@@ -55,7 +55,6 @@ serve(async (req) => {
           global: { 
             headers: { Authorization: authHeader },
             fetch: (url, init) => {
-              // Remove cache-control header as it's causing CORS issues
               if (init && init.headers) {
                 const headers = new Headers(init.headers);
                 if (headers.has('cache-control')) {
@@ -64,12 +63,12 @@ serve(async (req) => {
                 return fetch(url, {
                   ...init,
                   headers,
-                  signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
+                  signal: AbortSignal.timeout(5000),
                 });
               }
               return fetch(url, {
                 ...init,
-                signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
+                signal: AbortSignal.timeout(5000),
               });
             },
           }
@@ -104,44 +103,30 @@ serve(async (req) => {
       );
     }
 
-    // Consultar status da conexão no banco de dados com tratamento de erros
+    // Consultar status da conexão na tabela consolidada
     let connected = false;
     try {
-      // Primeiro verificamos a tabela whatsapp_connections
-      const { data: whatsappConnection, error: whatsappError } = await supabaseClient
+      const { data: connection, error } = await supabaseClient
         .from('whatsapp_connections')
-        .select('connected')
+        .select('connected, status')
         .eq('user_id', user.id)
-        .limit(1)
         .maybeSingle();
       
-      if (whatsappError) {
-        console.error("Erro na consulta à tabela whatsapp_connections:", whatsappError);
-      } else if (whatsappConnection?.connected) {
-        connected = true;
+      if (error) {
+        console.error("Erro na consulta à tabela whatsapp_connections:", error);
+        return new Response(
+          JSON.stringify({ error: "Erro no banco de dados", details: error.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Conexão está ativa se o status for "active" e connected for true
+      connected = !!(connection?.connected && connection?.status === 'active');
+      
+      if (connected) {
         console.log("Conexão WhatsApp encontrada e está ativa");
       } else {
         console.log("Conexão WhatsApp não encontrada ou não está ativa");
-      }
-      
-      // Se não estiver conectado na tabela whatsapp_connections, verificamos também a tabela whatsapp_api_connections
-      if (!connected) {
-        const { data: apiConnection, error: apiError } = await supabaseClient
-          .from('whatsapp_api_connections')
-          .select('connected, status')
-          .eq('user_id', user.id)
-          .eq('status', 'active')  // Apenas conexões ativas
-          .limit(1)
-          .maybeSingle();
-        
-        if (apiError) {
-          console.error("Erro na consulta à tabela whatsapp_api_connections:", apiError);
-        } else if (apiConnection?.connected) {
-          connected = true;
-          console.log("Conexão de API WhatsApp encontrada e está ativa");
-        } else {
-          console.log("Conexão de API WhatsApp não encontrada ou não está ativa");
-        }
       }
     } catch (dbError) {
       console.error("Exceção ao consultar banco de dados:", dbError);

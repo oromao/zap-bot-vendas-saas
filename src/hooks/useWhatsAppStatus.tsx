@@ -37,7 +37,7 @@ export const useWhatsAppStatus = () => {
     const now = Date.now();
     if (
       statusRequestInProgress.current || 
-      (!forceCheck && now - lastCheckTime.current < 10000) // Não verificar mais frequentemente que 10s, a menos que forçado
+      (!forceCheck && now - lastCheckTime.current < 10000)
     ) {
       return;
     }

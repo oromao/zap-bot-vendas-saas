@@ -9,67 +9,43 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      whatsapp_api_connections: {
+      whatsapp_connections: {
         Row: {
-          config: Json
+          config: Json | null
           connected: boolean | null
           connected_at: string | null
-          connection_type: string
+          connection_type: string | null
+          created_at: string | null
+          disconnected_at: string | null
           id: string
+          last_qr_generated_at: string | null
           status: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          config: Json
+          config?: Json | null
           connected?: boolean | null
           connected_at?: string | null
-          connection_type: string
+          connection_type?: string | null
+          created_at?: string | null
+          disconnected_at?: string | null
           id?: string
+          last_qr_generated_at?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          config?: Json
+          config?: Json | null
           connected?: boolean | null
           connected_at?: string | null
-          connection_type?: string
+          connection_type?: string | null
+          created_at?: string | null
+          disconnected_at?: string | null
           id?: string
+          last_qr_generated_at?: string | null
           status?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      whatsapp_connections: {
-        Row: {
-          connected: boolean | null
-          connected_at: string | null
-          created_at: string | null
-          disconnected_at: string | null
-          id: string
-          last_qr_generated_at: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          connected?: boolean | null
-          connected_at?: string | null
-          created_at?: string | null
-          disconnected_at?: string | null
-          id?: string
-          last_qr_generated_at?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          connected?: boolean | null
-          connected_at?: string | null
-          created_at?: string | null
-          disconnected_at?: string | null
-          id?: string
-          last_qr_generated_at?: string | null
           updated_at?: string | null
           user_id?: string
         }

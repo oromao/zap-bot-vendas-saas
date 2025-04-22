@@ -33,11 +33,11 @@ serve(async (req) => {
     // Check if WhatsApp is connected
     const { data: connectionData, error: connectionError } = await supabaseClient
       .from('whatsapp_connections')
-      .select('connected')
+      .select('connected, status')
       .eq('user_id', user.id)
       .maybeSingle();
     
-    if (!connectionData?.connected) {
+    if (!connectionData?.connected || connectionData?.status !== 'active') {
       return new Response(
         JSON.stringify({ error: "WhatsApp não está conectado" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

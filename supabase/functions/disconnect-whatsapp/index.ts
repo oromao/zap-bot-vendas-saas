@@ -45,14 +45,13 @@ serve(async (req) => {
 
     console.log(`Attempting to disconnect WhatsApp for user ${user.id}`);
     
-    // In a real implementation, this would call the WhatsApp Business API to disconnect
-    // For this demo, we'll just update the status in the database
-    
+    // Atualizar a tabela consolidada
     const { error } = await supabaseClient
       .from('whatsapp_connections')
       .update({ 
         connected: false,
-        disconnected_at: new Date().toISOString()
+        disconnected_at: new Date().toISOString(),
+        status: 'inactive'
       })
       .eq('user_id', user.id);
     

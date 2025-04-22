@@ -122,16 +122,16 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       console.log("[DEBUG] Storing API connection data for user:", userId);
       
-      // Store in whatsapp_api_connections table
+      // Armazenar na tabela consolidada whatsapp_connections
       const { error: insertError } = await adminClient
-        .from("whatsapp_api_connections")
+        .from("whatsapp_connections")
         .upsert({
           user_id: userId,
           connection_type: requestData.type,
           config: requestData,
           connected: true,
           connected_at: new Date().toISOString(),
-          status: "active",
+          status: 'active',
           updated_at: new Date().toISOString()
         });
 
@@ -141,24 +141,6 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       console.log("[DEBUG] Successfully stored API connection data");
-
-      // Update whatsapp_connections table for backward compatibility
-      // Using upsert instead of insert to handle duplicate key errors
-      const { error: updateError } = await adminClient
-        .from("whatsapp_connections")
-        .upsert({
-          user_id: userId,
-          connected: true,
-          connected_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (updateError) {
-        console.error("[DEBUG] Error updating whatsapp_connections:", updateError);
-        // We continue even if this fails, since the main table was updated successfully
-      } else {
-        console.log("[DEBUG] Successfully updated whatsapp_connections table");
-      }
 
       return new Response(
         JSON.stringify({ 
