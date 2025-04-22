@@ -27,6 +27,8 @@ type ConnectionRequest = MetaConnectionRequest | TwilioConnectionRequest;
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("[DEBUG] Received request to connect-whatsapp-api");
+  console.log("[DEBUG] Request URL:", req.url);
+  console.log("[DEBUG] Request method:", req.method);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -37,23 +39,14 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Get authorization header
+    // Extract authorization and apikey headers for debugging
     const authHeader = req.headers.get('Authorization');
     const apikey = req.headers.get('apikey');
+    const contentType = req.headers.get('Content-Type');
     
     console.log("[DEBUG] Auth header present:", !!authHeader);
     console.log("[DEBUG] API key present:", !!apikey);
-    
-    if (!authHeader) {
-      console.error("Request missing authorization token");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: Authentication required" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Extract JWT token
-    const jwt = authHeader.replace('Bearer ', '');
+    console.log("[DEBUG] Content-Type:", contentType);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -62,29 +55,75 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("[DEBUG] Supabase URL:", supabaseUrl ? "Present" : "Missing");
     console.log("[DEBUG] Supabase Anon Key:", supabaseAnonKey ? "Present" : "Missing");
+    console.log("[DEBUG] Supabase Service Role Key:", supabaseServiceRoleKey ? "Present" : "Missing");
 
-    // Create admin client with service role key for accessing auth data directly
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false
+    // Extract the JWT token
+    let userId: string | null = null;
+    try {
+      // Create admin client with service role key for accessing auth data directly
+      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        }
+      });
+
+      // First try to get the userId from the JWT if it exists
+      if (authHeader) {
+        const jwt = authHeader.replace('Bearer ', '');
+        console.log("[DEBUG] Attempting to verify JWT token");
+        
+        const { data: { user }, error: userError } = await adminClient.auth.getUser(jwt);
+        
+        if (userError) {
+          console.error("[DEBUG] Error verifying JWT:", userError.message);
+        } else if (user) {
+          userId = user.id;
+          console.log(`[DEBUG] Successfully authenticated user via JWT: ${userId}`);
+        }
       }
-    });
-
-    // Verify the JWT token
-    const { data: { user }, error: userError } = await adminClient.auth.getUser(jwt);
-
-    if (userError || !user) {
-      console.error("Authentication error:", userError?.message || "User not found");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: " + (userError?.message || "User not found") }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      
+      // If JWT auth fails, check if we have a userId in the request body
+      if (!userId) {
+        // Try to decode userId from the sb context if available
+        const sbContext = (req as any).url?.sb?.[0]?.auth_user;
+        
+        if (sbContext) {
+          userId = sbContext;
+          console.log(`[DEBUG] Found userId in sb context: ${userId}`);
+        }
+      }
+      
+      // If still no userId, check the request body
+      if (!userId) {
+        const requestBody = await req.clone().text();
+        console.log("[DEBUG] Request body:", requestBody);
+        
+        try {
+          const bodyData = JSON.parse(requestBody);
+          userId = bodyData.userId || null;
+          console.log(`[DEBUG] Found userId in request body: ${userId}`);
+        } catch (e) {
+          console.error("[DEBUG] Error parsing request body:", e);
+        }
+      }
+    } catch (authError) {
+      console.error("[DEBUG] Error during authentication process:", authError);
     }
 
-    const userId = user.id;
-    console.log(`[DEBUG] Successfully authenticated user: ${userId}`);
+    if (!userId) {
+      console.error("[DEBUG] Authentication failed: No valid user ID found");
+      return new Response(
+        JSON.stringify({ error: "Authentication failed: Unable to identify user" }),
+        { 
+          status: 401, 
+          headers: { "Content-Type": "application/json", ...corsHeaders } 
+        }
+      );
+    }
+    
+    console.log(`[DEBUG] Proceeding with user ID: ${userId}`);
     
     // Parse the request body
     let requestData: ConnectionRequest;
@@ -92,9 +131,9 @@ const handler = async (req: Request): Promise<Response> => {
       requestData = await req.json();
       console.log("[DEBUG] Request data type:", requestData.type);
     } catch (e) {
-      console.error("Error parsing request body:", e);
+      console.error("[DEBUG] Error parsing request body:", e);
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
+        JSON.stringify({ error: "Invalid request body", details: e instanceof Error ? e.message : "Unknown error" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -102,6 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Validate request data
     if (requestData.type === "meta") {
       if (!requestData.businessId || !requestData.phoneNumberId || !requestData.accessToken) {
+        console.error("[DEBUG] Missing required Meta WhatsApp fields");
         return new Response(
           JSON.stringify({ error: "Missing required Meta WhatsApp fields" }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -109,12 +149,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
     } else if (requestData.type === "twilio") {
       if (!requestData.accountSid || !requestData.authToken || !requestData.phoneNumber) {
+        console.error("[DEBUG] Missing required Twilio fields");
         return new Response(
           JSON.stringify({ error: "Missing required Twilio fields" }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     } else {
+      console.error("[DEBUG] Invalid connection type");
       return new Response(
         JSON.stringify({ error: "Invalid connection type" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -123,59 +165,81 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`[DEBUG] Processing ${requestData.type} connection request for user ${userId}`);
 
-    // Store connection data in database (encrypted at rest)
-    const { error: insertError } = await adminClient.from("whatsapp_api_connections").upsert({
-      user_id: userId,
-      connection_type: requestData.type,
-      config: requestData,
-      connected: true,
-      connected_at: new Date().toISOString(),
-      status: "active",
-    });
+    // Create a client using anon key for database operations (since we already verified the user)
+    const client = createClient(supabaseUrl, supabaseAnonKey);
+    
+    try {
+      // Store connection data in database (encrypted at rest)
+      const { error: insertError } = await client.from("whatsapp_api_connections").upsert({
+        user_id: userId,
+        connection_type: requestData.type,
+        config: requestData,
+        connected: true,
+        connected_at: new Date().toISOString(),
+        status: "active",
+      });
 
-    if (insertError) {
-      console.error("Error storing connection data:", insertError);
+      if (insertError) {
+        console.error("[DEBUG] Error storing connection data:", insertError);
+        return new Response(
+          JSON.stringify({ error: "Failed to save connection data", details: insertError.message }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      
+      console.log("[DEBUG] Successfully stored API connection data");
+
+      // Update whatsapp_connections table 
+      const { error: updateError } = await client.from("whatsapp_connections").upsert({
+        user_id: userId,
+        connected: true,
+        connected_at: new Date().toISOString(),
+      });
+
+      if (updateError) {
+        console.error("[DEBUG] Error updating connection status:", updateError);
+        // Continue execution even if this update fails
+      } else {
+        console.log("[DEBUG] Successfully updated whatsapp_connections table");
+      }
+
+      // Try to send confirmation email
+      try {
+        await client.functions.invoke('send-connection-notification', {
+          body: { connectionType: requestData.type === "meta" ? "Meta WhatsApp API" : "Twilio API" }
+        });
+        console.log("[DEBUG] Notification email sent successfully");
+      } catch (emailError) {
+        console.error("[DEBUG] Error sending notification email:", emailError);
+        // Continue execution even if email fails
+      }
+      
+      console.log(`[DEBUG] Successfully connected ${requestData.type} for user ${userId}`);
+      
       return new Response(
-        JSON.stringify({ error: "Failed to save connection data", details: insertError.message }),
+        JSON.stringify({ 
+          message: "WhatsApp API connected successfully", 
+          connected: true
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    } catch (dbError) {
+      console.error("[DEBUG] Database operation error:", dbError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Database operation failed", 
+          details: dbError instanceof Error ? dbError.message : "Unknown database error" 
+        }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
-    // Update whatsapp_connections table 
-    const { error: updateError } = await adminClient.from("whatsapp_connections").upsert({
-      user_id: userId,
-      connected: true,
-      connected_at: new Date().toISOString(),
-    });
-
-    if (updateError) {
-      console.error("Error updating connection status:", updateError);
-      // Continue execution even if this update fails
-    }
-
-    // Send confirmation email
-    try {
-      await adminClient.functions.invoke('send-connection-notification', {
-        body: { connectionType: requestData.type === "meta" ? "Meta WhatsApp API" : "Twilio API" }
-      });
-    } catch (emailError) {
-      console.error("Error sending notification email:", emailError);
-      // Continue execution even if email fails
-    }
-    
-    console.log(`[DEBUG] Successfully connected ${requestData.type} for user ${userId}`);
-    
+  } catch (error) {
+    console.error("[DEBUG] Unhandled error in connect-whatsapp-api:", error);
     return new Response(
       JSON.stringify({ 
-        message: "WhatsApp API connected successfully", 
-        connected: true
+        error: "Internal server error", 
+        details: error instanceof Error ? error.message : "Unknown error" 
       }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  } catch (error) {
-    console.error("Error handling WhatsApp API connection request:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

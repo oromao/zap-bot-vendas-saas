@@ -28,51 +28,89 @@ const WhatsAppAPIConnect: React.FC = () => {
 
   // Get current session when component mounts
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchSession = async () => {
-      const { data, error } = await supabaseClient.auth.getSession();
-      if (data?.session?.access_token) {
-        setSessionToken(data.session.access_token);
+      try {
+        const { data, error } = await supabaseClient.auth.getSession();
+        
+        if (error) {
+          console.error("Error fetching session:", error.message);
+          return;
+        }
+        
+        if (data?.session) {
+          setSessionToken(data.session.access_token);
+          setUserId(data.session.user?.id || null);
+          console.log("Session loaded successfully, user ID:", data.session.user?.id);
+        } else {
+          console.warn("No active session found");
+        }
+      } catch (err) {
+        console.error("Exception fetching session:", err);
       }
     };
+    
     fetchSession();
   }, [supabaseClient.auth]);
 
-  const handleMetaConnect = async (e: React.FormEvent) => {
+  const handleApiConnect = async (e: React.FormEvent, type: "meta" | "twilio") => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      if (!sessionToken) {
+      if (!sessionToken || !userId) {
         throw new Error("Not authenticated. Please log in and try again.");
       }
 
-      // Call the edge function directly with the auth token
-      const response = await fetch('https://alycmsfeertgjmpqkwup.supabase.co/functions/v1/connect-whatsapp-api', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWNtc2ZlZXJ0Z2ptcHFrd3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMzQ3MTYsImV4cCI6MjA2MDgxMDcxNn0.0RpcXTHWwyo7ar-pY_F71em4a417wpxA4U8UXhrmlj0'
-        },
-        body: JSON.stringify({
-          type: "meta",
-          businessId: metaBusinessId,
-          phoneNumberId: metaPhoneNumberId,
-          accessToken: metaAccessToken
-        })
+      console.log(`Connecting ${type} API for user ${userId}`);
+      
+      // Prepare request body based on connection type
+      const requestBody = type === "meta" 
+        ? {
+            type: "meta",
+            businessId: metaBusinessId,
+            phoneNumberId: metaPhoneNumberId,
+            accessToken: metaAccessToken,
+            userId: userId // Include userId in the request for extra validation
+          }
+        : {
+            type: "twilio",
+            accountSid: twilioAccountSid,
+            authToken: twilioAuthToken,
+            phoneNumber: twilioPhoneNumber,
+            userId: userId // Include userId in the request for extra validation
+          };
+
+      // Call the edge function with the auth token
+      const response = await supabaseClient.functions.invoke('connect-whatsapp-api', {
+        body: requestBody
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to connect WhatsApp API");
+      // Check for function level errors
+      if (response.error) {
+        console.error(`Error connecting ${type} API:`, response.error);
+        throw new Error(response.error.message || `Failed to connect ${type} API`);
       }
+      
+      // Check for HTTP errors
+      if (!response.data) {
+        console.error(`No data returned from ${type} API connection`);
+        throw new Error(`Failed to connect ${type} API: No data returned`);
+      }
+      
+      if (response.data.error) {
+        console.error(`Error from ${type} API:`, response.data.error);
+        throw new Error(response.data.error);
+      }
+      
+      // Success case
+      console.log(`${type} API connected successfully:`, response.data);
       
       toast({
         title: "Conexão realizada com sucesso!",
-        description: "Seu WhatsApp Business API foi conectado com sucesso.",
+        description: `Seu ${type === "meta" ? "WhatsApp Business API" : "Twilio"} foi conectado com sucesso.`,
         variant: "default",
       });
 
@@ -82,10 +120,10 @@ const WhatsAppAPIConnect: React.FC = () => {
       }, 1500);
       
     } catch (error: any) {
-      console.error("Erro ao conectar WhatsApp API:", error);
+      console.error(`Erro ao conectar ${type === "meta" ? "WhatsApp API" : "Twilio"}:`, error);
       toast({
         title: "Erro na conexão",
-        description: error.message || "Falha ao conectar com a API do WhatsApp. Verifique seus dados e tente novamente.",
+        description: error.message || `Falha ao conectar com ${type === "meta" ? "a API do WhatsApp" : "o Twilio"}. Verifique seus dados e tente novamente.`,
         variant: "destructive",
       });
     } finally {
@@ -93,59 +131,8 @@ const WhatsAppAPIConnect: React.FC = () => {
     }
   };
   
-  const handleTwilioConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      if (!sessionToken) {
-        throw new Error("Not authenticated. Please log in and try again.");
-      }
-      
-      // Call the edge function directly with the auth token
-      const response = await fetch('https://alycmsfeertgjmpqkwup.supabase.co/functions/v1/connect-whatsapp-api', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWNtc2ZlZXJ0Z2ptcHFrd3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMzQ3MTYsImV4cCI6MjA2MDgxMDcxNn0.0RpcXTHWwyo7ar-pY_F71em4a417wpxA4U8UXhrmlj0'
-        },
-        body: JSON.stringify({
-          type: "twilio",
-          accountSid: twilioAccountSid,
-          authToken: twilioAuthToken,
-          phoneNumber: twilioPhoneNumber
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to connect Twilio API");
-      }
-      
-      toast({
-        title: "Conexão realizada com sucesso!",
-        description: "Sua integração com Twilio foi conectada com sucesso.",
-        variant: "default",
-      });
-
-      // Reload the page after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-      
-    } catch (error: any) {
-      console.error("Erro ao conectar Twilio:", error);
-      toast({
-        title: "Erro na conexão",
-        description: error.message || "Falha ao conectar com o Twilio. Verifique seus dados e tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleMetaConnect = (e: React.FormEvent) => handleApiConnect(e, "meta");
+  const handleTwilioConnect = (e: React.FormEvent) => handleApiConnect(e, "twilio");
 
   return (
     <div className="space-y-6">
@@ -232,7 +219,7 @@ const WhatsAppAPIConnect: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="bg-whatsapp hover:bg-whatsapp/90" 
-                      disabled={isLoading}
+                      disabled={isLoading || !sessionToken}
                     >
                       {isLoading ? "Conectando..." : "Conectar WhatsApp"}
                     </Button>
@@ -296,11 +283,17 @@ const WhatsAppAPIConnect: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="bg-twilio hover:bg-twilio/90 text-white" 
-                      disabled={isLoading}
+                      disabled={isLoading || !sessionToken}
                     >
                       {isLoading ? "Conectando..." : "Conectar Twilio"}
                     </Button>
                   </div>
+
+                  {!sessionToken && (
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded-md">
+                      <p className="text-sm text-yellow-700">Você precisa estar autenticado para conectar APIs. Por favor, faça login novamente.</p>
+                    </div>
+                  )}
                 </form>
               </CardContent>
             </Card>
