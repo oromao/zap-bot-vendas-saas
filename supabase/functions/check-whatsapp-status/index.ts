@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cache-control',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 // Cache de status para reduzir consultas ao banco de dados
@@ -55,6 +55,18 @@ serve(async (req) => {
           global: { 
             headers: { Authorization: authHeader },
             fetch: (url, init) => {
+              // Remove cache-control header as it's causing CORS issues
+              if (init && init.headers) {
+                const headers = new Headers(init.headers);
+                if (headers.has('cache-control')) {
+                  headers.delete('cache-control');
+                }
+                return fetch(url, {
+                  ...init,
+                  headers,
+                  signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
+                });
+              }
               return fetch(url, {
                 ...init,
                 signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
