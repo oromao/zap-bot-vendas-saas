@@ -41,7 +41,7 @@ const WhatsAppAPIConnect: React.FC = () => {
       
       if (error) {
         console.error("Erro ao conectar WhatsApp API:", error);
-        throw error;
+        throw new Error(error.message || "Failed to connect WhatsApp API");
       }
       
       toast({
@@ -49,6 +49,11 @@ const WhatsAppAPIConnect: React.FC = () => {
         description: "Seu WhatsApp Business API foi conectado com sucesso.",
         variant: "default",
       });
+
+      // Reload the page or update state as needed
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
       
     } catch (error: any) {
       console.error("Erro ao conectar WhatsApp API:", error);
@@ -78,7 +83,7 @@ const WhatsAppAPIConnect: React.FC = () => {
       
       if (error) {
         console.error("Erro ao conectar Twilio:", error);
-        throw error;
+        throw new Error(error.message || "Failed to connect Twilio API");
       }
       
       toast({
@@ -86,6 +91,11 @@ const WhatsAppAPIConnect: React.FC = () => {
         description: "Sua integração com Twilio foi conectada com sucesso.",
         variant: "default",
       });
+
+      // Reload the page or update state as needed
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
       
     } catch (error: any) {
       console.error("Erro ao conectar Twilio:", error);

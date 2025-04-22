@@ -5,6 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 interface MetaConnectionRequest {
@@ -26,44 +28,38 @@ type ConnectionRequest = MetaConnectionRequest | TwilioConnectionRequest;
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
+    // Get authorization header
     const authHeader = req.headers.get('Authorization');
+    
     if (!authHeader) {
-      console.error("Requisição sem token de autorização");
+      console.error("Request missing authorization token");
       return new Response(
         JSON.stringify({ error: "Unauthorized: Authentication required" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
+    // Initialize Supabase client with authorization from request
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-          fetch: (url, init) => {
-            // Remove cache-control header as it's causing CORS issues
-            if (init && init.headers) {
-              const headers = new Headers(init.headers);
-              if (headers.has('cache-control')) {
-                headers.delete('cache-control');
-              }
-              return fetch(url, {
-                ...init,
-                headers,
-                signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
-              });
-            }
-            return fetch(url, {
-              ...init,
-              signal: AbortSignal.timeout(5000), // Timeout razoável de 5s
-            });
+          headers: { 
+            Authorization: authHeader,
           },
         },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
       }
     );
 
@@ -73,15 +69,24 @@ const handler = async (req: Request): Promise<Response> => {
       error: sessionError,
     } = await supabaseClient.auth.getSession();
 
-    if (sessionError || !session) {
-      console.error("Erro de autenticação:", sessionError || "Session not found");
+    if (sessionError) {
+      console.error("Authentication error:", sessionError.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized: Authentication required" }),
+        JSON.stringify({ error: "Unauthorized: " + sessionError.message }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!session) {
+      console.error("No session found");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: No session found" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
     const userId = session.user.id;
+    console.log(`Processing request for authenticated user: ${userId}`);
     
     // Parse the request body
     let requestData: ConnectionRequest;
@@ -132,7 +137,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (insertError) {
       console.error("Error storing connection data:", insertError);
       return new Response(
-        JSON.stringify({ error: "Failed to save connection data" }),
+        JSON.stringify({ error: "Failed to save connection data", details: insertError.message }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -146,6 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating connection status:", updateError);
+      // Continue execution even if this update fails
     }
 
     // Send confirmation email
