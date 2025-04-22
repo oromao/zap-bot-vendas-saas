@@ -7,6 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Cache para reduzir as chamadas
+const chatCache = new Map();
+const CACHE_TTL = 60000; // 1 minuto de TTL para o cache
+const MAX_CACHE_SIZE = 100; // Limitar tamanho do cache
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -14,11 +19,37 @@ serve(async (req) => {
   }
 
   try {
-    // Get the user ID from the JWT token in the request
+    const startTime = performance.now();
+    console.log(`[${new Date().toISOString()}] Recebendo requisição para buscar conversas`);
+    
+    // Extrair o token JWT para identificar o usuário
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Requisição sem token de autorização");
+      return new Response(
+        JSON.stringify({ error: "Não autorizado", details: "Token de autorização ausente" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar o cache antes de prosseguir
+    const token = authHeader.replace('Bearer ', '');
+    const cacheKey = `chats_${token}`;
+    const cachedChats = chatCache.get(cacheKey);
+    
+    if (cachedChats && (Date.now() - cachedChats.timestamp < CACHE_TTL)) {
+      console.log(`Retornando chats em cache (${cachedChats.data.length} chats)`);
+      return new Response(
+        JSON.stringify(cachedChats.data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Se não tem cache válido, inicializar cliente Supabase
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { global: { headers: { Authorization: authHeader } } }
     );
     
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -30,7 +61,7 @@ serve(async (req) => {
       );
     }
 
-    // Check if WhatsApp is connected
+    // Verificar se WhatsApp está conectado
     const { data: connectionData, error: connectionError } = await supabaseClient
       .from('whatsapp_connections')
       .select('connected, status')
@@ -44,11 +75,31 @@ serve(async (req) => {
       );
     }
 
-    // In a real implementation, this would fetch chats from the WhatsApp Business API
-    // For this demo, we'll return mock data
+    // Em uma implementação real, isso buscaria conversas da WhatsApp Business API
+    // Para esta demonstração, retornaremos dados simulados
     const mockChats = generateMockChats();
     
     console.log(`Retrieved ${mockChats.length} chats for user ${user.id}`);
+    
+    // Armazenar no cache
+    chatCache.set(cacheKey, {
+      data: mockChats,
+      timestamp: Date.now()
+    });
+
+    // Limpar entradas antigas do cache se exceder o tamanho máximo
+    if (chatCache.size > MAX_CACHE_SIZE) {
+      console.log(`Limpando cache (tamanho: ${chatCache.size})`);
+      const now = Date.now();
+      for (const [key, value] of chatCache.entries()) {
+        if (now - value.timestamp > CACHE_TTL) {
+          chatCache.delete(key);
+        }
+      }
+    }
+
+    const endTime = performance.now();
+    console.log(`Tempo de resposta: ${Math.round(endTime - startTime)}ms`);
     
     return new Response(
       JSON.stringify(mockChats),
