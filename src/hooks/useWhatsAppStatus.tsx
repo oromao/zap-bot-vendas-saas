@@ -261,6 +261,7 @@ export const useWhatsAppStatus = () => {
     error,
     connect,
     disconnect,
-    reconnect
+    reconnect,
+    checkStatus: checkConnectionStatus // Exportar função para componentes poderem forçar verificação
   };
 };

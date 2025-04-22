@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppAPIConnect from "@/components/WhatsAppAPIConnect";
@@ -10,8 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const WhatsAppPage: React.FC = () => {
-  const { isConnected } = useWhatsAppStatus();
+  const { isConnected, checkStatus } = useWhatsAppStatus();
   const [activeTab, setActiveTab] = useState<string>(isConnected ? "conversas" : "conexao");
+  
+  // Verificar o status ao montar o componente e quando o activeTab mudar
+  useEffect(() => {
+    // Verificar o status novamente ao mudar para a aba de conexão
+    if (activeTab === "conexao") {
+      checkStatus(true); // Forçar verificação
+    }
+  }, [activeTab, checkStatus]);
+  
+  // Se estiver conectado, mudar para a aba de conversas
+  useEffect(() => {
+    if (isConnected && activeTab === "conexao") {
+      setActiveTab("conversas");
+    }
+  }, [isConnected, activeTab]);
   
   return (
     <div>
@@ -36,7 +51,10 @@ const WhatsAppPage: React.FC = () => {
               </TabsList>
               
               <TabsContent value="conexao">
-                <WhatsAppAPIConnect />
+                <WhatsAppAPIConnect onSuccess={() => {
+                  checkStatus(true);
+                  setActiveTab("conversas");
+                }} />
               </TabsContent>
               
               <TabsContent value="tutorial">

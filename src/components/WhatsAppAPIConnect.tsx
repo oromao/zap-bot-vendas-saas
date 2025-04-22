@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,11 @@ import { Check, AlertTriangle, ExternalLink } from "lucide-react";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const WhatsAppAPIConnect: React.FC = () => {
+interface WhatsAppAPIConnectProps {
+  onSuccess?: () => void;
+}
+
+const WhatsAppAPIConnect: React.FC<WhatsAppAPIConnectProps> = ({ onSuccess }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [connectionType, setConnectionType] = useState<"meta" | "twilio">("meta");
@@ -86,10 +90,15 @@ const WhatsAppAPIConnect: React.FC = () => {
         variant: "default",
       });
 
-      // Reload the page after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Call the onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Reload the page after a short delay if no callback is provided
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
       
     } catch (error: any) {
       console.error(`Erro ao conectar ${type === "meta" ? "WhatsApp API" : "Twilio"}:`, error);

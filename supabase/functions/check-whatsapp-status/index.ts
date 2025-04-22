@@ -107,25 +107,42 @@ serve(async (req) => {
     // Consultar status da conexão no banco de dados com tratamento de erros
     let connected = false;
     try {
-      // Otimizar consulta ao banco de dados
-      const { data, error } = await supabaseClient
+      // Primeiro verificamos a tabela whatsapp_connections
+      const { data: whatsappConnection, error: whatsappError } = await supabaseClient
         .from('whatsapp_connections')
         .select('connected')
         .eq('user_id', user.id)
         .limit(1)
         .maybeSingle();
       
-      if (error) {
-        console.error("Erro na consulta ao banco de dados:", error);
-        // Se houve erro na consulta, retornar status não conectado, mas não armazenar em cache
-        return new Response(
-          JSON.stringify({ connected: false }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      if (whatsappError) {
+        console.error("Erro na consulta à tabela whatsapp_connections:", whatsappError);
+      } else if (whatsappConnection?.connected) {
+        connected = true;
+        console.log("Conexão WhatsApp encontrada e está ativa");
+      } else {
+        console.log("Conexão WhatsApp não encontrada ou não está ativa");
       }
       
-      // Se não encontrou entrada, assume desconectado
-      connected = data?.connected ?? false;
+      // Se não estiver conectado na tabela whatsapp_connections, verificamos também a tabela whatsapp_api_connections
+      if (!connected) {
+        const { data: apiConnection, error: apiError } = await supabaseClient
+          .from('whatsapp_api_connections')
+          .select('connected, status')
+          .eq('user_id', user.id)
+          .eq('status', 'active')  // Apenas conexões ativas
+          .limit(1)
+          .maybeSingle();
+        
+        if (apiError) {
+          console.error("Erro na consulta à tabela whatsapp_api_connections:", apiError);
+        } else if (apiConnection?.connected) {
+          connected = true;
+          console.log("Conexão de API WhatsApp encontrada e está ativa");
+        } else {
+          console.log("Conexão de API WhatsApp não encontrada ou não está ativa");
+        }
+      }
     } catch (dbError) {
       console.error("Exceção ao consultar banco de dados:", dbError);
       // Em caso de exceção, retornar não conectado sem armazenar em cache
