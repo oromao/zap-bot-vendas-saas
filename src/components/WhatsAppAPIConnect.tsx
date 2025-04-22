@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Check, AlertTriangle, ExternalLink } from "lucide-react";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const WhatsAppAPIConnect: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [connectionType, setConnectionType] = useState<"meta" | "twilio">("meta");
   const supabaseClient = useSupabaseClient();
-  
+  const { user } = useAuth();
+
   // Meta API fields
   const [metaBusinessId, setMetaBusinessId] = useState("");
   const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
@@ -26,45 +27,16 @@ const WhatsAppAPIConnect: React.FC = () => {
   const [twilioAuthToken, setTwilioAuthToken] = useState("");
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState("");
 
-  // Get current session when component mounts
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const { data, error } = await supabaseClient.auth.getSession();
-        
-        if (error) {
-          console.error("Error fetching session:", error.message);
-          return;
-        }
-        
-        if (data?.session) {
-          setSessionToken(data.session.access_token);
-          setUserId(data.session.user?.id || null);
-          console.log("Session loaded successfully, user ID:", data.session.user?.id);
-        } else {
-          console.warn("No active session found");
-        }
-      } catch (err) {
-        console.error("Exception fetching session:", err);
-      }
-    };
-    
-    fetchSession();
-  }, [supabaseClient.auth]);
-
   const handleApiConnect = async (e: React.FormEvent, type: "meta" | "twilio") => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      if (!sessionToken || !userId) {
+      if (!user?.id) {
         throw new Error("Not authenticated. Please log in and try again.");
       }
 
-      console.log(`Connecting ${type} API for user ${userId}`);
+      console.log(`Connecting ${type} API for user ${user.id}`);
       
       // Prepare request body based on connection type
       const requestBody = type === "meta" 
@@ -73,17 +45,17 @@ const WhatsAppAPIConnect: React.FC = () => {
             businessId: metaBusinessId,
             phoneNumberId: metaPhoneNumberId,
             accessToken: metaAccessToken,
-            userId: userId // Include userId in the request for extra validation
+            userId: user.id
           }
         : {
             type: "twilio",
             accountSid: twilioAccountSid,
             authToken: twilioAuthToken,
             phoneNumber: twilioPhoneNumber,
-            userId: userId // Include userId in the request for extra validation
+            userId: user.id
           };
 
-      // Call the edge function with the auth token
+      // Call the edge function
       const response = await supabaseClient.functions.invoke('connect-whatsapp-api', {
         body: requestBody
       });
@@ -138,6 +110,14 @@ const WhatsAppAPIConnect: React.FC = () => {
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg border shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Conecte seu WhatsApp Business API</h3>
+        
+        {!user?.id && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-md">
+            <p className="text-sm text-red-700">
+              <strong>Atenção:</strong> Você precisa estar autenticado para conectar a API. Por favor, faça login novamente.
+            </p>
+          </div>
+        )}
         
         <RadioGroup value={connectionType} onValueChange={(value) => setConnectionType(value as "meta" | "twilio")} className="mb-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -199,7 +179,7 @@ const WhatsAppAPIConnect: React.FC = () => {
                       <Input 
                         id="meta-token"
                         type="password"
-                        placeholder="••••••••••••���•••••••••"
+                        placeholder="••••••••••••••••••••••"
                         value={metaAccessToken}
                         onChange={(e) => setMetaAccessToken(e.target.value)}
                         required
@@ -219,7 +199,7 @@ const WhatsAppAPIConnect: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="bg-whatsapp hover:bg-whatsapp/90" 
-                      disabled={isLoading || !sessionToken}
+                      disabled={isLoading || !user?.id}
                     >
                       {isLoading ? "Conectando..." : "Conectar WhatsApp"}
                     </Button>
@@ -283,17 +263,11 @@ const WhatsAppAPIConnect: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="bg-twilio hover:bg-twilio/90 text-white" 
-                      disabled={isLoading || !sessionToken}
+                      disabled={isLoading || !user?.id}
                     >
                       {isLoading ? "Conectando..." : "Conectar Twilio"}
                     </Button>
                   </div>
-
-                  {!sessionToken && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded-md">
-                      <p className="text-sm text-yellow-700">Você precisa estar autenticado para conectar APIs. Por favor, faça login novamente.</p>
-                    </div>
-                  )}
                 </form>
               </CardContent>
             </Card>

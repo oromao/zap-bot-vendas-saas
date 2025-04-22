@@ -14,6 +14,7 @@ interface MetaConnectionRequest {
   businessId: string;
   phoneNumberId: string;
   accessToken: string;
+  userId?: string; // Make userId optional in the request
 }
 
 interface TwilioConnectionRequest {
@@ -21,6 +22,7 @@ interface TwilioConnectionRequest {
   accountSid: string;
   authToken: string;
   phoneNumber: string;
+  userId?: string; // Make userId optional in the request
 }
 
 type ConnectionRequest = MetaConnectionRequest | TwilioConnectionRequest;
@@ -54,21 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
-    // Get user ID from the context
-    const sbContext = (req as any).url?.sb?.[0];
-    const userId = sbContext?.auth_user;
-    
-    console.log("[DEBUG] User ID from context:", userId);
-
-    if (!userId) {
-      console.error("[DEBUG] No user ID found in request context");
-      return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse and validate request data
+    // Parse request data first
     let requestData: ConnectionRequest;
     try {
       requestData = await req.json();
@@ -78,6 +66,53 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ error: "Invalid request body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Try to get user ID from different sources
+    let userId = null;
+    
+    // 1. Check JWT context if available
+    const sbContext = (req as any).url?.sb?.[0];
+    const contextUserId = sbContext?.auth_user;
+    if (contextUserId) {
+      console.log("[DEBUG] User ID found in JWT context:", contextUserId);
+      userId = contextUserId;
+    }
+    
+    // 2. If not in context, check if it's in the request body
+    else if (requestData.userId) {
+      console.log("[DEBUG] User ID found in request body:", requestData.userId);
+      userId = requestData.userId;
+      
+      // Validate that this user exists
+      const { data: userExists, error: userCheckError } = await adminClient
+        .from("whatsapp_connections")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (userCheckError) {
+        console.error("[DEBUG] Error checking user existence:", userCheckError);
+      } else if (!userExists) {
+        console.log("[DEBUG] Creating initial whatsapp_connections record for user");
+        // Create initial record if it doesn't exist
+        await adminClient
+          .from("whatsapp_connections")
+          .upsert({
+            user_id: userId,
+            connected: false,
+            created_at: new Date().toISOString(),
+          });
+      }
+    }
+
+    // If still no user ID, return authentication error
+    if (!userId) {
+      console.error("[DEBUG] No user ID found in request context or body");
+      return new Response(
+        JSON.stringify({ error: "Authentication required. Please provide a valid user ID" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -108,6 +143,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Store connection data in database
     try {
+      console.log("[DEBUG] Storing API connection data for user:", userId);
+      
+      // Store in whatsapp_api_connections table
       const { error: insertError } = await adminClient
         .from("whatsapp_api_connections")
         .upsert({
@@ -117,6 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
           connected: true,
           connected_at: new Date().toISOString(),
           status: "active",
+          updated_at: new Date().toISOString()
         });
 
       if (insertError) {
@@ -133,6 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
           user_id: userId,
           connected: true,
           connected_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
       if (updateError) {
