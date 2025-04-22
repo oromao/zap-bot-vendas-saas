@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,7 +43,7 @@ const WhatsAppAPIConnect: React.FC = () => {
       toast({
         title: "Conexão realizada com sucesso!",
         description: "Seu WhatsApp Business API foi conectado com sucesso.",
-        variant: "success",
+        variant: "default",
       });
       
       // Send confirmation email
@@ -83,7 +82,7 @@ const WhatsAppAPIConnect: React.FC = () => {
       toast({
         title: "Conexão realizada com sucesso!",
         description: "Sua integração com Twilio foi conectada com sucesso.",
-        variant: "success",
+        variant: "default",
       });
       
       // Send confirmation email
@@ -168,7 +167,7 @@ const WhatsAppAPIConnect: React.FC = () => {
                       <Input 
                         id="meta-token"
                         type="password"
-                        placeholder="••••••••••••••••••••••"
+                        placeholder="••••••••••••���•••••••••"
                         value={metaAccessToken}
                         onChange={(e) => setMetaAccessToken(e.target.value)}
                         required
