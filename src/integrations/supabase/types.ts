@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      whatsapp_api_connections: {
+        Row: {
+          config: Json
+          connected: boolean | null
+          connected_at: string | null
+          connection_type: string
+          id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          config: Json
+          connected?: boolean | null
+          connected_at?: string | null
+          connection_type: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          connected?: boolean | null
+          connected_at?: string | null
+          connection_type?: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_connections: {
         Row: {
           connected: boolean | null
