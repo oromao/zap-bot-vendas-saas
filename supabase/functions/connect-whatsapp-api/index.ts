@@ -107,11 +107,10 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error updating connection status:", updateError);
     }
 
-    // Send test message or verify connection
-    // This would normally verify the connection with either Meta or Twilio APIs
-    // For now, we'll just simulate a successful connection
-    
-    console.log(`WhatsApp API connection established for user ${userId} using ${requestData.type} provider`);
+    // Send confirmation email
+    await supabaseClient.functions.invoke('send-connection-notification', {
+      body: { connectionType: requestData.type === "meta" ? "Meta WhatsApp API" : "Twilio API" }
+    });
     
     return new Response(
       JSON.stringify({ 
