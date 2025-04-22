@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 
@@ -11,61 +11,122 @@ export const useWhatsAppStatus = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  
+  // Use refs to track active requests and intervals to prevent race conditions
+  const statusRequestInProgress = useRef(false);
+  const lastCheckTime = useRef(0);
+  const statusCheckIntervalRef = useRef<number | null>(null);
+  const qrPollingIntervalRef = useRef<number | null>(null);
+  const maxRetries = 3;
+  
+  // Helper to cancel existing intervals
+  const clearAllIntervals = useCallback(() => {
+    if (statusCheckIntervalRef.current) {
+      clearInterval(statusCheckIntervalRef.current);
+      statusCheckIntervalRef.current = null;
+    }
+    
+    if (qrPollingIntervalRef.current) {
+      clearInterval(qrPollingIntervalRef.current);
+      qrPollingIntervalRef.current = null;
+    }
+  }, []);
 
-  const checkConnectionStatus = useCallback(async () => {
+  const checkConnectionStatus = useCallback(async (forceCheck = false) => {
+    // Prevent concurrent requests or too frequent checking
+    const now = Date.now();
+    if (
+      statusRequestInProgress.current || 
+      (!forceCheck && now - lastCheckTime.current < 10000) // Não verificar mais frequentemente que 10s, a menos que forçado
+    ) {
+      return;
+    }
+
+    // Bloquear novas requisições até esta terminar
+    statusRequestInProgress.current = true;
+    
     try {
-      setIsLoading(true);
+      if (!isLoading) setIsLoading(true);
       
       const { data, error: apiError } = await supabaseClient.functions.invoke('check-whatsapp-status', {
         method: 'POST',
-        body: { timestamp: new Date().getTime() }, // Add cache-busting parameter
+        body: { timestamp: now }, // Cache-busting parameter
         headers: {
           'Cache-Control': 'no-cache',
         }
       });
       
+      // Atualizar timestamp da última verificação
+      lastCheckTime.current = now;
+      
       if (apiError) {
         console.error("Erro ao verificar status:", apiError);
-        setError("Falha ao verificar o status da conexão. Tente novamente.");
         
-        // If it's a connection error, we don't want to set isConnected to false
-        // as it might be a temporary issue and the actual status hasn't changed
-        if (retryCount < 3) {
-          setRetryCount(retryCount + 1);
-          setTimeout(() => checkConnectionStatus(), 2000); // Retry after 2 seconds
+        // Se o erro for de autenticação ou permissão, não tentar novamente
+        if (apiError.status === 401 || apiError.status === 403) {
+          setError("Sem autorização para verificar o status. Por favor, faça login novamente.");
+          setIsConnected(false);
+          setRetryCount(0); // Reset retry count on auth errors
+        } else if (retryCount < maxRetries) {
+          // Para outros erros, tentar novamente algumas vezes
+          setRetryCount(prev => prev + 1);
+          setError(`Tentando reconectar... (${retryCount + 1}/${maxRetries})`);
+          
+          // Atrasar progressivamente as novas tentativas
+          setTimeout(() => {
+            statusRequestInProgress.current = false; // Permitir nova tentativa
+            checkConnectionStatus(true);
+          }, 2000 * (retryCount + 1));
           return;
         } else {
+          // Após tentativas máximas, desistir
+          setError("Falha ao verificar o status da conexão após várias tentativas.");
           setIsConnected(false);
+          setRetryCount(0); // Reset for future attempts
         }
       } else {
+        // Sucesso na verificação
         setIsConnected(data?.connected || false);
         setError(null);
         setRetryCount(0);
       }
-      
-      setIsLoading(false);
     } catch (err) {
-      console.error("Erro ao verificar status do WhatsApp:", err);
+      console.error("Exceção ao verificar status do WhatsApp:", err);
       setError("Não foi possível verificar o status da conexão.");
-      setIsLoading(false);
       
-      // Same retry logic as above
-      if (retryCount < 3) {
-        setRetryCount(retryCount + 1);
-        setTimeout(() => checkConnectionStatus(), 2000);
+      // Mesmo comportamento de retry para exceções
+      if (retryCount < maxRetries) {
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => {
+          statusRequestInProgress.current = false;
+          checkConnectionStatus(true);
+        }, 2000 * (retryCount + 1));
+        return;
+      } else {
+        setIsConnected(false);
+        setRetryCount(0);
+      }
+    } finally {
+      // Se não houver retry pendente, liberar lock e remover loading
+      if (retryCount >= maxRetries || retryCount === 0) {
+        setIsLoading(false);
+        statusRequestInProgress.current = false;
       }
     }
-  }, [supabaseClient.functions, toast, retryCount]);
+  }, [supabaseClient.functions, isLoading, retryCount]);
 
   const connect = useCallback(async () => {
     try {
+      // Limpar todos os intervalos existentes
+      clearAllIntervals();
+      
       setIsLoading(true);
       setError(null);
       setRetryCount(0);
       
       const { data, error: apiError } = await supabaseClient.functions.invoke('generate-whatsapp-qr', {
         method: 'POST',
-        body: { timestamp: new Date().getTime() }, // Add cache-busting parameter
+        body: { timestamp: Date.now() },
         headers: {
           'Cache-Control': 'no-cache',
         }
@@ -82,11 +143,15 @@ export const useWhatsAppStatus = () => {
       setIsLoading(false);
       
       // Iniciar polling para verificar status da conexão
-      const checkInterval = setInterval(async () => {
+      qrPollingIntervalRef.current = setInterval(async () => {
+        // Usar uma variável para não interferir com o state do componente
+        // que pode estar desatualizado dentro deste closure
+        let connected = false;
+        
         try {
           const { data: statusData, error: statusError } = await supabaseClient.functions.invoke('check-whatsapp-status', {
             method: 'POST',
-            body: { timestamp: new Date().getTime() },
+            body: { timestamp: Date.now() },
             headers: {
               'Cache-Control': 'no-cache',
             }
@@ -97,10 +162,12 @@ export const useWhatsAppStatus = () => {
             return; // Continue trying rather than stopping the interval
           }
           
-          if (statusData?.connected) {
+          connected = statusData?.connected || false;
+          
+          if (connected) {
             setIsConnected(true);
             setQrCode(null);
-            clearInterval(checkInterval);
+            clearAllIntervals();
             
             toast({
               title: "WhatsApp conectado!",
@@ -115,10 +182,17 @@ export const useWhatsAppStatus = () => {
       
       // Limpar intervalo após 2 minutos (tempo máximo para escanear o QR)
       setTimeout(() => {
-        clearInterval(checkInterval);
-        if (!isConnected) {
-          setQrCode(null);
-          setError("Tempo para escanear o QR Code expirou. Tente novamente.");
+        if (qrPollingIntervalRef.current) {
+          clearInterval(qrPollingIntervalRef.current);
+          qrPollingIntervalRef.current = null;
+          
+          // Verificar novamente o status para ter certeza
+          checkConnectionStatus(true).then(() => {
+            if (!isConnected) {
+              setQrCode(null);
+              setError("Tempo para escanear o QR Code expirou. Tente novamente.");
+            }
+          });
         }
       }, 120000);
     } catch (err) {
@@ -126,7 +200,7 @@ export const useWhatsAppStatus = () => {
       setError("Não foi possível gerar o QR Code.");
       setIsLoading(false);
     }
-  }, [supabaseClient.functions, toast, isConnected]);
+  }, [supabaseClient.functions, toast, isConnected, clearAllIntervals, checkConnectionStatus]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -135,7 +209,7 @@ export const useWhatsAppStatus = () => {
       
       const { error: apiError } = await supabaseClient.functions.invoke('disconnect-whatsapp', {
         method: 'POST',
-        body: { timestamp: new Date().getTime() },
+        body: { timestamp: Date.now() },
         headers: {
           'Cache-Control': 'no-cache',
         }
@@ -176,18 +250,21 @@ export const useWhatsAppStatus = () => {
   }, [connect]);
 
   useEffect(() => {
-    checkConnectionStatus();
+    // Verificar status na inicialização
+    checkConnectionStatus(true);
     
-    // Set up an interval to periodically check connection status
-    // This makes sure the status is always up to date
-    const statusInterval = setInterval(() => {
-      if (!isLoading) {  // Only check if we're not already loading
+    // Configurar intervalo para verificar status periodicamente
+    statusCheckIntervalRef.current = setInterval(() => {
+      if (!statusRequestInProgress.current) {  // Somente verificar se não houver requisição em andamento
         checkConnectionStatus();
       }
-    }, 60000); // Check every minute
+    }, 60000); // Verificar a cada minuto
     
-    return () => clearInterval(statusInterval);
-  }, [checkConnectionStatus, isLoading]);
+    // Cleanup ao desmontar o componente
+    return () => {
+      clearAllIntervals();
+    };
+  }, [checkConnectionStatus, clearAllIntervals]);
 
   return {
     isConnected,
