@@ -1,73 +1,179 @@
-# Welcome to your Lovable project
+# ZapBot - Plataforma SaaS de Automação WhatsApp
 
-## Project info
+## 🚀 Visão Geral
 
-**URL**: https://lovable.dev/projects/2bea27fe-a74b-4e41-859e-ab00e21a54f4
+O ZapBot é uma plataforma SaaS (Software as a Service) que oferece automação avançada para WhatsApp, permitindo empresas e desenvolvedores criarem fluxos de trabalho personalizados para atendimento ao cliente, marketing e automação de processos.
 
-## How can I edit this code?
+## 🛠️ Tecnologias Principais
 
-There are several ways of editing your application.
+- **Frontend:** React + TypeScript, Vite
+- **Estilização:** Tailwind CSS, SASS
+- **UI Components:** Radix UI, Shadcn/ui
+- **Backend/Serverless:** Supabase Functions (Deno/TypeScript)
+- **Banco de Dados:** Supabase (PostgreSQL)
+- **Bot WhatsApp:** Node.js (whatsapp-web.js)
+- **Autenticação:** Supabase Auth
+- **Logger:** Winston/Pino (backend), logger customizado (frontend)
+- **DevOps:** Docker, Nginx
+- **Qualidade de Código:** ESLint, Prettier
 
-**Use Lovable**
+## 📋 Funcionalidades Principais
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2bea27fe-a74b-4e41-859e-ab00e21a54f4) and start prompting.
+### 1. Autenticação e Gerenciamento de Usuários
+- Login e registro de usuários
+- Autenticação via Supabase
+- Proteção de rotas (AuthGuard)
+- Perfis de usuário e configurações
 
-Changes made via Lovable will be committed automatically to this repo.
+### 2. Interface do WhatsApp
+- Conexão com API do WhatsApp
+- Visualização de conversas em tempo real
+- Tutorial de configuração inicial
+- Preview do bot em funcionamento
 
-**Use your preferred IDE**
+### 3. Construtor de Fluxos de Trabalho
+- Editor visual de fluxos
+- Painel de edição de nós
+- Barra lateral com componentes
+- Modal de testes de fluxo
+- Integração com APIs externas
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 4. Dashboard e Analytics
+- Visualização de métricas
+- Gráficos e relatórios
+- Monitoramento de conversas
+- Status do sistema
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 5. Componentes UI Reutilizáveis
+- Acordeões e diálogos
+- Menus e navegação
+- Formulários e inputs
+- Tabelas e cards
+- Toasts e notificações
 
-Follow these steps:
+## 📁 Estrutura do Projeto
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```
+windsurf-project/
+├── src/
+│   ├── components/         # Componentes React
+│   │   ├── ui/            # Componentes base (Radix UI)
+│   │   └── ...            # Componentes específicos
+│   ├── hooks/             # Hooks customizados
+│   ├── integrations/      # Integrações (Supabase)
+│   ├── lib/               # Utilitários e logger
+│   ├── pages/             # Páginas da aplicação
+│   ├── theme/             # Contexto de tema
+│   └── styles/            # Estilos globais
+├── supabase/              # Backend serverless
+└── public/                # Arquivos estáticos
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🔧 Configuração e Instalação
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. **Pré-requisitos**
+   - Node.js 18+
+   - npm ou yarn
+   - Conta no Supabase
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+2. **Instalação**
+   ```bash
+   npm install
+   ```
+
+3. **Desenvolvimento**
+   ```bash
+   npm run dev
+   ```
+
+4. **Build**
+   ```bash
+   npm run build
+   ```
+
+## 🤖 Bot WhatsApp
+
+### Funcionalidades do Bot
+- Conexão automática via QR Code
+- Gerenciamento de sessões
+- Processamento de mensagens
+- Integração com fluxos de trabalho
+- Respostas automáticas
+- Encaminhamento inteligente
+
+### Comandos do Bot
+```bash
+# Iniciar o bot
+npm run bot
+
+# Desenvolvimento completo (frontend + bot)
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔐 Variáveis de Ambiente
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+VITE_SUPABASE_URL=sua_url_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima
+BOT_WEBHOOK_URL=url_webhook_bot
+```
 
-**Use GitHub Codespaces**
+## 📚 Hooks Customizados
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `useAuth`: Gerenciamento de autenticação
+- `useWhatsAppStatus`: Status da conexão
+- `useWhatsAppConversations`: Gestão de conversas
+- `useWhatsAppMessages`: Manipulação de mensagens
+- `useFormValidation`: Validação de formulários
+- `useAsyncFeedback`: Feedback assíncrono
 
-## What technologies are used for this project?
+## 🎨 Componentes UI
 
-This project is built with:
+### Componentes Base
+- Accordion, Alert, Avatar
+- Button, Card, Dialog
+- Dropdown, Form, Input
+- Modal, Popover, Toast
+- Table, Tabs, Tooltip
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Componentes Específicos
+- BotPreview
+- WhatsAppConnect
+- WorkflowBuilder
+- Features
+- Integration
 
-## How can I deploy this project?
+## 📱 Páginas
 
-Simply open [Lovable](https://lovable.dev/projects/2bea27fe-a74b-4e41-859e-ab00e21a54f4) and click on Share -> Publish.
+- `/`: Landing page
+- `/login`: Autenticação
+- `/signup`: Registro
+- `/dashboard`: Painel principal
+- `/whatsapp`: Gestão do WhatsApp
+- `/workflows`: Editor de fluxos
+- `/config`: Configurações
+- `/admin`: Área administrativa
 
-## Can I connect a custom domain to my Lovable project?
+## 🔄 Ciclo de Desenvolvimento
 
-Yes, you can!
+1. **Qualidade de Código**
+   ```bash
+   npm run lint      # Verificar código
+   npm run lint:fix  # Corrigir automaticamente
+   npm run format    # Formatar código
+   ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. **Testes**
+   - Implementação futura de testes unitários e E2E
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie sua branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add: Amazing Feature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.

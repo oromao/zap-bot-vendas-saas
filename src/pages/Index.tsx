@@ -1,12 +1,11 @@
-
 import React from "react";
-import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import Features from "@/components/Features";
-import Integration from "@/components/Integration";
-import HowItWorks from "@/components/HowItWorks";
-import Pricing from "@/components/Pricing";
-import Footer from "@/components/Footer";
+import Navbar from "../components/Navbar";
+import Hero from "../components/Hero";
+import Features from "../components/Features";
+import Integration from "../components/Integration";
+import HowItWorks from "../components/HowItWorks";
+import Pricing from "../components/Pricing";
+import Footer from "../components/Footer";
 
 const Index: React.FC = () => {
   return (
@@ -24,10 +23,11 @@ const Index: React.FC = () => {
               Pronto para automatizar suas vendas?
             </h2>
             <p className="text-base md:text-xl mb-6 max-w-2xl mx-auto">
-              Crie seu robô de WhatsApp agora e aumente suas vendas com atendimento 24/7.
+              Crie seu robô de WhatsApp agora e aumente suas vendas com
+              atendimento 24/7.
             </p>
-            <a 
-              href="/cadastro" 
+            <a
+              href="/cadastro"
               className="inline-flex items-center justify-center rounded-md bg-white text-whatsapp px-6 md:px-8 py-2.5 md:py-3 text-sm md:text-lg font-medium shadow hover:bg-gray-100 transition-colors"
             >
               Começar teste grátis

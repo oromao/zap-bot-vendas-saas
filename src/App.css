@@ -1,4 +1,3 @@
-
 #root {
   width: 100%;
   margin: 0 auto;
@@ -55,13 +54,16 @@
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
-  
-  h1, h2, h3 {
+
+  h1,
+  h2,
+  h3 {
     word-break: break-word;
   }
-  
+
   /* Better tap targets on mobile */
-  button, a {
+  button,
+  a {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
@@ -81,7 +83,7 @@ html {
 
 /* Twilio color */
 .bg-twilio {
-  background-color: #F22F46;
+  background-color: #f22f46;
 }
 
 .bg-twilio\/90 {
@@ -89,7 +91,7 @@ html {
 }
 
 .text-twilio {
-  color: #F22F46;
+  color: #f22f46;
 }
 
 /* Badge styles */

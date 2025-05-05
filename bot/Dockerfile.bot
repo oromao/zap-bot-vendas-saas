@@ -1,0 +1,39 @@
+# Dockerfile.bot otimizado para Mac M1/M2 com Chromium
+FROM node:20-alpine
+
+# Instala o Chromium e outras dependências necessárias
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
+    && echo "UTC" > /etc/timezone
+
+# Configuração para o Puppeteer usar o Chromium instalado
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Cria diretório de trabalho
+WORKDIR /home/app
+
+# Copia o código do aplicativo
+COPY package.json .
+COPY bot.cjs .
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Instala as dependências do projeto
+RUN npm install
+
+# Garante que o script tem permissões de execução
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expõe a porta do servidor
+EXPOSE 3333
+
+# Comando para iniciar o bot com script personalizado
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["node", "bot.cjs"]

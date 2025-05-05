@@ -1,0 +1,76 @@
+services:
+  saas:
+    build:
+      context: .
+      dockerfile: Dockerfile.saas
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - bot
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  bot:
+    platform: linux/arm64
+    build:
+      context: ./bot
+      dockerfile: Dockerfile.bot
+    ports:
+      - "3333:3333"
+    env_file:
+      - .env
+    volumes:
+      - ./bot/bot.cjs:/home/app/bot.cjs
+      - ./bot/package.json:/home/app/package.json
+      - wwebjs_auth:/home/app/.wwebjs_auth:rw
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    shm_size: 1gb
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+      - NODE_ENV=production
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Em caso de problemas persistentes, descomente para iniciar como root
+    # user: root
+
+volumes:
+  wwebjs_auth:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/wwebjs_data
+      o: bind
+
+networks:
+  app-network:
+    name: app-network
+    driver: bridge
+    attachable: true

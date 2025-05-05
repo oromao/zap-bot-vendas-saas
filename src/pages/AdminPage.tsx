@@ -1,11 +1,16 @@
-
-import React, { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import React, { useEffect, useState } from "react";
+import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { useToast } from "../hooks/use-toast";
+import { logger } from "../lib/frontend-logger";
 
 interface User {
   id: string;
@@ -23,16 +28,21 @@ const AdminPage: React.FC = () => {
   // Função para carregar os usuários
   const loadUsers = async () => {
     setLoading(true);
+    logger.info("Iniciando carregamento de usuários");
     try {
       // Aqui precisamos fazer duas consultas porque não podemos acessar diretamente auth.users
       // Primeiro, vamos obter as conexões WhatsApp
-      const { data: connectionsData, error: connectionsError } = await supabaseClient
-        .from('whatsapp_connections')
-        .select('*');
+      const { data: connectionsData, error: connectionsError } =
+        await supabaseClient.from("whatsapp_connections").select("*");
 
       if (connectionsError) {
+        logger.error(
+          `Erro ao carregar conexões do WhatsApp: ${connectionsError}`
+        );
         throw connectionsError;
       }
+
+      logger.info("Conexões do WhatsApp carregadas com sucesso");
 
       // Simular dados de usuários já que não podemos acessar auth.users diretamente
       // Em um cenário real, você precisaria ter uma tabela de perfis vinculada aos usuários
@@ -41,32 +51,38 @@ const AdminPage: React.FC = () => {
           id: "123e4567-e89b-12d3-a456-426614174000",
           email: "usuario1@example.com",
           last_sign_in_at: new Date().toISOString(),
-          whatsapp_connected: false
+          whatsapp_connected: false,
         },
         {
           id: "223e4567-e89b-12d3-a456-426614174001",
-          email: "usuario2@example.com", 
+          email: "usuario2@example.com",
           last_sign_in_at: new Date(Date.now() - 86400000).toISOString(),
-          whatsapp_connected: false
-        }
+          whatsapp_connected: false,
+        },
       ];
 
       // Vincular dados de conexão WhatsApp com os usuários simulados
-      const usersWithWhatsApp = mockUsers.map(user => {
-        const connection = connectionsData?.find(conn => conn.user_id === user.id);
+      const usersWithWhatsApp = mockUsers.map((user) => {
+        const connection = connectionsData?.find(
+          (conn) => conn.user_id === user.id
+        );
         return {
           ...user,
-          whatsapp_connected: connection?.connected || false
+          whatsapp_connected: connection?.connected || false,
         };
       });
 
       setUsers(usersWithWhatsApp);
+      logger.info(
+        `Usuários carregados com sucesso - Total: ${usersWithWhatsApp.length}`
+      );
     } catch (error) {
+      logger.error(`Erro ao carregar usuários: ${error}`);
       console.error("Erro ao carregar usuários:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os usuários",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -75,6 +91,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -111,13 +128,19 @@ const AdminPage: React.FC = () => {
                         <tr key={user.id} className="border-b hover:bg-gray-50">
                           <td className="p-2">{user.email}</td>
                           <td className="p-2">
-                            {new Date(user.last_sign_in_at).toLocaleString('pt-BR')}
+                            {new Date(user.last_sign_in_at).toLocaleString(
+                              "pt-BR"
+                            )}
                           </td>
                           <td className="p-2">
                             {user.whatsapp_connected ? (
-                              <span className="text-green-600 font-medium">Conectado</span>
+                              <span className="text-green-600 font-medium">
+                                Conectado
+                              </span>
                             ) : (
-                              <span className="text-red-600 font-medium">Desconectado</span>
+                              <span className="text-red-600 font-medium">
+                                Desconectado
+                              </span>
                             )}
                           </td>
                         </tr>

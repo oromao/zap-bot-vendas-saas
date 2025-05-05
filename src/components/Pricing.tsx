@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Zap, Sparkles } from "lucide-react";
@@ -13,7 +12,8 @@ const Pricing: React.FC = () => {
             Planos <span className="text-gradient">simples e acessíveis</span>
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Escolha o plano ideal para o seu negócio e comece a automatizar seu WhatsApp hoje mesmo
+            Escolha o plano ideal para o seu negócio e comece a automatizar seu
+            WhatsApp hoje mesmo
           </p>
         </div>
 
@@ -22,8 +22,12 @@ const Pricing: React.FC = () => {
           <div className="bg-white rounded-xl border p-6 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="font-heading text-lg font-bold">Plano Gratuito</h3>
-                <p className="text-gray-500 text-sm">Comece a automatizar seu atendimento</p>
+                <h3 className="font-heading text-lg font-bold">
+                  Plano Gratuito
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  Comece a automatizar seu atendimento
+                </p>
               </div>
               <div className="text-right">
                 <span className="text-2xl font-bold">R$0</span>
@@ -46,7 +50,9 @@ const Pricing: React.FC = () => {
                   <span>Rastreamento de pedido</span>
                 </li>
                 <li className="flex gap-2 items-center text-sm text-gray-400">
-                  <span className="h-4 w-4 flex items-center justify-center text-xs">1</span>
+                  <span className="h-4 w-4 flex items-center justify-center text-xs">
+                    1
+                  </span>
                   <span>Apenas 1 robô ativo</span>
                 </li>
               </ul>
@@ -67,8 +73,12 @@ const Pricing: React.FC = () => {
 
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="font-heading text-lg font-bold">Plano Premium</h3>
-                <p className="text-gray-500 text-sm">Automatização completa para suas vendas</p>
+                <h3 className="font-heading text-lg font-bold">
+                  Plano Premium
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  Automatização completa para suas vendas
+                </p>
               </div>
               <div className="text-right">
                 <span className="text-2xl font-bold">R$29</span>
@@ -111,7 +121,7 @@ const Pricing: React.FC = () => {
 
             <Link to="/cadastro">
               <Button className="w-full bg-gradient hover:opacity-90 transition-opacity flex items-center gap-2">
-                <Zap className="h-4 w-4" /> 
+                <Zap className="h-4 w-4" />
                 Teste 7 dias grátis
               </Button>
             </Link>

@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from "react";
+import QRCode from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const WhatsAppConnect: React.FC = () => {
   const { toast } = useToast();
-  const { isConnected, isLoading, qrCode, connect, disconnect, reconnect, error } = useWhatsAppStatus();
+  const {
+    isConnected,
+    isLoading,
+    qrCode,
+    connect,
+    disconnect,
+    reconnect,
+    error,
+  } = useWhatsAppStatus();
   const [countdown, setCountdown] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
@@ -66,14 +74,15 @@ const WhatsAppConnect: React.FC = () => {
             )}
           </div>
         </div>
-        
+
         {!isConnected && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              Conecte seu WhatsApp Business escaneando o QR Code abaixo com seu aplicativo do WhatsApp. 
-              A sessão será salva para que você não precise escanear novamente a cada acesso.
+              Conecte seu WhatsApp Business escaneando o QR Code abaixo com seu
+              aplicativo do WhatsApp. A sessão será salva para que você não
+              precise escanear novamente a cada acesso.
             </p>
-            
+
             <div className="flex flex-col md:flex-row md:items-start gap-6">
               <div className="flex-1">
                 <Card className="border-2 border-dashed bg-white w-full max-w-xs mx-auto overflow-hidden">
@@ -81,21 +90,19 @@ const WhatsAppConnect: React.FC = () => {
                     {isLoading ? (
                       <div className="h-64 flex flex-col items-center justify-center p-4 text-center">
                         <div className="w-12 h-12 border-4 border-t-whatsapp rounded-full animate-spin mb-4"></div>
-                        <p className="text-sm text-gray-500">Gerando QR Code...</p>
+                        <p className="text-sm text-gray-500">
+                          Gerando QR Code...
+                        </p>
                       </div>
                     ) : qrCode ? (
                       <div className="p-4 flex items-center justify-center">
-                        <img 
-                          src={`data:image/png;base64,${qrCode}`} 
-                          alt="QR Code para conectar WhatsApp" 
-                          className="w-64 h-64"
-                          style={{ maxWidth: '100%', height: 'auto' }}
-                        />
+                        <QRCode value={qrCode} size={256} />
                       </div>
                     ) : (
                       <div className="h-64 flex items-center justify-center p-4 text-center">
                         <p className="text-sm text-gray-500">
-                          {error || "Clique em 'Conectar WhatsApp' para gerar um QR Code"}
+                          {error ||
+                            "Clique em 'Conectar WhatsApp' para gerar um QR Code"}
                         </p>
                       </div>
                     )}
@@ -103,13 +110,18 @@ const WhatsAppConnect: React.FC = () => {
                 </Card>
 
                 <div className="mt-4 flex justify-center">
-                  {!isConnected && (
-                    countdown !== null ? (
+                  {!isConnected &&
+                    (countdown !== null ? (
                       <Button disabled className="bg-gradient">
                         Atualizando em {countdown}s...
                       </Button>
                     ) : qrCode ? (
-                      <Button variant="outline" size="sm" onClick={handleRefresh} className="flex items-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        className="flex items-center"
+                      >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar QR Code
                       </Button>
@@ -117,17 +129,19 @@ const WhatsAppConnect: React.FC = () => {
                       <Button onClick={handleConnect} className="bg-gradient">
                         Conectar WhatsApp
                       </Button>
-                    )
-                  )}
-                  
+                    ))}
+
                   {!isConnected && error && !qrCode && (
-                    <Button onClick={handleReconnect} className="bg-gradient ml-2">
+                    <Button
+                      onClick={handleReconnect}
+                      className="bg-gradient ml-2"
+                    >
                       Tentar novamente
                     </Button>
                   )}
                 </div>
               </div>
-              
+
               <div className="flex-1 bg-gray-50 p-4 rounded-lg border">
                 <h4 className="font-medium mb-2">Instruções:</h4>
                 <ScrollArea className={isMobile ? "h-48" : "h-64"}>
@@ -139,15 +153,21 @@ const WhatsAppConnect: React.FC = () => {
                     <li>Aguarde a confirmação de conexão</li>
                     <li>Pronto! Seu WhatsApp está conectado à plataforma</li>
                   </ol>
-                  
+
                   <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                     <p className="text-xs text-yellow-700">
-                      <strong>Importante:</strong> Mantenha seu celular conectado à internet para que o robô de vendas funcione corretamente. A sessão será salva para que você não precise escanear o QR Code novamente.
+                      <strong>Importante:</strong> Mantenha seu celular
+                      conectado à internet para que o robô de vendas funcione
+                      corretamente. A sessão será salva para que você não
+                      precise escanear o QR Code novamente.
                     </p>
-                    
+
                     {isMobile && (
                       <p className="text-xs text-yellow-700 mt-2">
-                        <strong>Dica para usuários mobile:</strong> Para escanear este QR code do mesmo dispositivo, você pode fazer uma captura de tela e depois abrir a imagem no seu WhatsApp Business.
+                        <strong>Dica para usuários mobile:</strong> Para
+                        escanear este QR code do mesmo dispositivo, você pode
+                        fazer uma captura de tela e depois abrir a imagem no seu
+                        WhatsApp Business.
                       </p>
                     )}
                   </div>

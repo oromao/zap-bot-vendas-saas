@@ -1,9 +1,18 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .from-whatsapp {
+    --tw-gradient-from: theme(colors.whatsapp.DEFAULT);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(37 211 102 / 0));
+  }
+  .to-zapbot-blue {
+    --tw-gradient-to: theme(colors.zapbot.blue);
+  }
+}
 
 @layer base {
   :root {
@@ -16,10 +25,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 142 70% 48%;  /* WhatsApp green */
+    --primary: 142 70% 48%; /* WhatsApp green */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 199 85% 48%;  /* ZapBot blue */
+    --secondary: 199 85% 48%; /* ZapBot blue */
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
@@ -78,17 +87,27 @@
     @apply bg-background text-foreground font-sans;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading font-bold;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-montserrat font-bold;
   }
 
   .text-gradient {
     @apply bg-gradient-to-r from-whatsapp to-zapbot-blue bg-clip-text text-transparent;
   }
-  
+
   .gradient-border {
     @apply border-2 relative;
-    border-image: linear-gradient(to right, theme('colors.whatsapp.DEFAULT'), theme('colors.zapbot.blue')) 1;
+    border-image: linear-gradient(
+        to right,
+        theme("colors.whatsapp.DEFAULT"),
+        theme("colors.zapbot.blue")
+      )
+      1;
   }
 
   .bg-gradient {

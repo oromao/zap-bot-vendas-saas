@@ -1,10 +1,10 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface NotificationRequest {
@@ -37,7 +37,10 @@ const handler = async (req: Request): Promise<Response> => {
     if (sessionError || !session) {
       return new Response(
         JSON.stringify({ error: "Unauthorized: Authentication required" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
       );
     }
 
@@ -47,23 +50,30 @@ const handler = async (req: Request): Promise<Response> => {
 
     // In a real implementation, you would use a service like SendGrid or Resend to send emails
     // For now, we'll just log that an email would be sent
-    console.log(`[Email notification] To: ${userEmail} - Subject: ZapBot WhatsApp Connection Successful`);
-    console.log(`[Email notification] Type: ${requestData.connectionType} connected successfully`);
+    console.log(
+      `[Email notification] To: ${userEmail} - Subject: ZapBot WhatsApp Connection Successful`
+    );
+    console.log(
+      `[Email notification] Type: ${requestData.connectionType} connected successfully`
+    );
 
     return new Response(
-      JSON.stringify({ 
-        message: "Notification sent successfully", 
+      JSON.stringify({
+        message: "Notification sent successfully",
         email: userEmail,
-        connectionType: requestData.connectionType
+        connectionType: requestData.connectionType,
       }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
     );
   } catch (error) {
     console.error("Error handling notification request:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

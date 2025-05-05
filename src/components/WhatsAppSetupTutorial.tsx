@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, ExternalLink } from "lucide-react";
@@ -32,19 +31,24 @@ const WhatsAppSetupTutorial = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="max-w-3xl mx-auto">
-            <h3 className="text-xl font-semibold mb-6">Tutorial de Configuração</h3>
-            
+            <h3 className="text-xl font-semibold mb-6">
+              Tutorial de Configuração
+            </h3>
+
             <div className="space-y-6">
               {steps.map((step, index) => (
-                <div key={index} className="flex items-start gap-4 p-4 border rounded-lg bg-white">
+                <div
+                  key={index}
+                  className="flex items-start gap-4 p-4 border rounded-lg bg-white"
+                >
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="h-5 w-5 text-green-600" />
                   </div>
-                  
+
                   <div className="flex-grow">
                     <h4 className="text-lg font-medium">{step.title}</h4>
                     <p className="text-gray-600 mt-1">{step.description}</p>
-                    
+
                     <a
                       href={step.link}
                       target="_blank"
@@ -55,9 +59,11 @@ const WhatsAppSetupTutorial = () => {
                       <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
                   </div>
-                  
+
                   <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
-                    <span className="font-semibold text-gray-700">{index + 1}</span>
+                    <span className="font-semibold text-gray-700">
+                      {index + 1}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -78,7 +84,8 @@ const WhatsAppSetupTutorial = () => {
 
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-sm text-blue-700">
-                Precisa de ajuda? Nossa equipe de suporte está disponível para auxiliar na configuração.
+                Precisa de ajuda? Nossa equipe de suporte está disponível para
+                auxiliar na configuração.
               </p>
             </div>
           </div>

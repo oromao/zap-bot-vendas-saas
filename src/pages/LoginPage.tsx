@@ -1,8 +1,7 @@
-
 import React from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import LoginForm from "@/components/LoginForm";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import LoginForm from "../components/LoginForm";
 import { MessageSquare } from "lucide-react";
 
 const LoginPage: React.FC = () => {
@@ -28,22 +27,23 @@ const LoginPage: React.FC = () => {
                   </div>
                   <h2 className="font-bold text-lg">ZapBot Vendas</h2>
                 </div>
-                
+
                 <div className="mb-6">
-                  <img 
-                    src="https://cdn-icons-png.flaticon.com/512/889/889101.png" 
-                    alt="WhatsApp Bot" 
+                  <img
+                    src="https://cdn-icons-png.flaticon.com/512/889/889101.png"
+                    alt="WhatsApp Bot"
                     className="w-48 h-48 mx-auto"
                   />
                 </div>
-                
+
                 <div className="text-center">
                   <h3 className="font-bold text-xl mb-3">Não tem uma conta?</h3>
                   <p className="mb-4 text-gray-600">
-                    Experimente o ZapBot por 7 dias gratuitamente e transforme seu WhatsApp em uma ferramenta de vendas automática.
+                    Experimente o ZapBot por 7 dias gratuitamente e transforme
+                    seu WhatsApp em uma ferramenta de vendas automática.
                   </p>
-                  <a 
-                    href="/cadastro" 
+                  <a
+                    href="/cadastro"
                     className="block w-full py-2 px-4 bg-gradient text-white rounded-md font-medium hover:opacity-90 transition-opacity"
                   >
                     Criar conta grátis

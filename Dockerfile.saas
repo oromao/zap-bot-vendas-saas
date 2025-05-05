@@ -1,0 +1,33 @@
+FROM node:20-alpine as build
+
+# Instalando dependências necessárias para o Chromium
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    nodejs \
+    yarn
+
+# Configurando variáveis de ambiente para o Puppeteer
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+WORKDIR /app
+COPY package*.json ./
+
+# Instalando dependências com cache limpo e sem warnings obsoletos
+RUN npm install --legacy-peer-deps --no-audit
+
+COPY . .
+ENV VITE_APP_ENV=production
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

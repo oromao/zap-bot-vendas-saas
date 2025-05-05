@@ -1,8 +1,7 @@
-
 import React from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import SignupForm from "@/components/SignupForm";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import SignupForm from "../components/SignupForm";
 import { MessageSquare } from "lucide-react";
 
 const SignupPage: React.FC = () => {
@@ -28,9 +27,9 @@ const SignupPage: React.FC = () => {
                   </div>
                   <h2 className="font-bold text-lg">ZapBot Vendas</h2>
                 </div>
-                
+
                 <h3 className="font-bold text-xl mb-3">O que você ganha:</h3>
-                
+
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-whatsapp text-lg">✓</span>
@@ -56,20 +55,23 @@ const SignupPage: React.FC = () => {
 
                 <div className="bg-white border rounded-md p-4 mb-4">
                   <p className="text-sm text-gray-700">
-                    "Desde que implementamos o ZapBot, nossa taxa de conversão aumentou 23%. Os clientes adoram a resposta instantânea!"
+                    "Desde que implementamos o ZapBot, nossa taxa de conversão
+                    aumentou 23%. Os clientes adoram a resposta instantânea!"
                   </p>
                   <div className="mt-3 flex items-center">
                     <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"></div>
                     <div className="ml-3">
-                      <div className="font-medium text-sm">Ricardo Oliveira</div>
+                      <div className="font-medium text-sm">
+                        Ricardo Oliveira
+                      </div>
                       <div className="text-xs text-gray-600">Tech Shop</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="text-xs text-gray-500">
-                  Ao final do período gratuito de 7 dias, você será cobrado R$29/mês 
-                  caso opte por continuar com o plano Premium.
+                  Ao final do período gratuito de 7 dias, você será cobrado
+                  R$29/mês caso opte por continuar com o plano Premium.
                 </div>
               </div>
             </div>

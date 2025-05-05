@@ -1,7 +1,6 @@
-
 import React, { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 
 interface AuthGuardProps {
   requireAuth?: boolean;
@@ -9,16 +8,17 @@ interface AuthGuardProps {
   isAdminOnly?: boolean;
 }
 
-const AuthGuard: React.FC<AuthGuardProps> = ({ 
+const AuthGuard: React.FC<AuthGuardProps> = ({
   requireAuth = false,
   redirectTo = requireAuth ? "/login" : "/dashboard",
-  isAdminOnly = false
+  isAdminOnly = false,
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
   // Check if user is admin (replace this with your actual admin check logic)
-  const isAdmin = user?.email === "admin@zapbot.com" || user?.email === "seu@email.com";
+  const isAdmin =
+    user?.email === "admin@zapbot.com" || user?.email === "seu@email.com";
 
   // If still loading auth state, show a loading indicator
   if (loading) {
