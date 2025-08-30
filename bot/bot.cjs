@@ -38,7 +38,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const client = new Client({
   authStrategy: new LocalAuth({
     clientId: "bot-session",
-    dataPath: "/home/app/.wwebjs_auth",
+    dataPath: "./wwebjs_auth",
   }),
   puppeteer: {
     headless: true,
@@ -54,7 +54,7 @@ const client = new Client({
       "--disable-features=IsolateOrigins,site-per-process",
       "--blink-settings=imagesEnabled=false",
       "--no-zygote",
-      "--user-data-dir=/home/app/.wwebjs_auth/session",
+      "--user-data-dir=./wwebjs_auth/session",
       "--disable-features=HttpsFirstBalancedModeAutoEnable"
     ],
     handleSIGINT: false,
