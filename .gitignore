@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# WhatsApp bot session data
+wwebjs_auth/
+wwebjs_data/
+.wwebjs_auth/
+.wwebjs_cache/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
